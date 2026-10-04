@@ -200,41 +200,6 @@ public:
             in.tfclass = pPlayer->GetPlayerClass() ? pPlayer->GetPlayerClass()->GetClassIndex() : 0;
             in.tfhealth = pPlayer->GetHealth();
             CTFWeaponBase* activeWeapon = pPlayer->GetActiveTFWeapon();
-            static CTFWeaponBase* sLastWeapon = NULL;
-            static float sLastPrimaryAttackTime = -1.0f;
-            static float sNextWeaponDiag = 0.0f;
-            if (activeWeapon != sLastWeapon)
-            {
-                sLastWeapon = activeWeapon;
-                sLastPrimaryAttackTime = activeWeapon != NULL ? activeWeapon->GetLastPrimaryAttackTime() : -1.0f;
-                if (activeWeapon != NULL)
-                {
-                    Msg("[bfbb] weapon tracker: weapon=%s melee=%d primary=%.6f\\n",
-                        activeWeapon->GetClassname(), (int)activeWeapon->IsMeleeWeapon(),
-                        sLastPrimaryAttackTime);
-                }
-            }
-            else if (activeWeapon != NULL)
-            {
-                const float primaryAttackTime = activeWeapon->GetLastPrimaryAttackTime();
-                if (gpGlobals->curtime >= sNextWeaponDiag)
-                {
-                    sNextWeaponDiag = gpGlobals->curtime + 0.25f;
-                    Msg("[bfbb] weapon diag: weapon=%s melee=%d primary=%.6f last=%.6f delta=%.6f\\n",
-                        activeWeapon->GetClassname(), (int)activeWeapon->IsMeleeWeapon(),
-                        primaryAttackTime, sLastPrimaryAttackTime,
-                        primaryAttackTime - sLastPrimaryAttackTime);
-                }
-                if (primaryAttackTime != sLastPrimaryAttackTime)
-                {
-                    const float oldPrimaryAttackTime = sLastPrimaryAttackTime;
-                    const bool melee = activeWeapon->IsMeleeWeapon();
-                    in.weaponflags |= BRIDGE_WEAPON_FIRED;
-                    sLastPrimaryAttackTime = primaryAttackTime;
-                    Msg("[bfbb] primary attack event: weapon=%s melee=%d time %.6f -> %.6f\\n",
-                        activeWeapon->GetClassname(), (int)melee, oldPrimaryAttackTime, primaryAttackTime);
-                }
-            }
             if (activeWeapon != NULL && activeWeapon->IsMeleeWeapon())
                 in.weaponflags |= BRIDGE_WEAPON_MELEE;
 
