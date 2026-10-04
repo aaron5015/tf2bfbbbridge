@@ -36,10 +36,27 @@ static uint32_t g_hitscanCount = 0;
 static float g_hitscanOrigin[3] = { 0.0f, 0.0f, 0.0f };
 static float g_hitscanDir[BRIDGE_MAX_HITSCAN_RAYS][3] = {};
 static float g_hitscanRange = 0.0f;
+static uint32_t g_rocketCount = 0;
+static int32_t g_rocketEntIndex[BRIDGE_MAX_ROCKETS] = {};
+static float g_rocketPos[BRIDGE_MAX_ROCKETS][3] = {};
+static float g_rocketRadius[BRIDGE_MAX_ROCKETS] = {};
 
 void TF2Bridge_NotifyWeaponFired()
 {
     g_weaponFiredPending = true;
+}
+
+void TF2Bridge_NotifyRocket(int entIndex, const float origin[3], float radius)
+{
+    if (g_rocketCount >= BRIDGE_MAX_ROCKETS)
+        return;
+
+    const uint32_t i = g_rocketCount++;
+    g_rocketEntIndex[i] = entIndex;
+    g_rocketPos[i][0] = origin[0];
+    g_rocketPos[i][1] = origin[1];
+    g_rocketPos[i][2] = origin[2];
+    g_rocketRadius[i] = radius;
 }
 
 void TF2Bridge_NotifyHitscanRay(const float origin[3], const float dir[3], float range)
@@ -146,6 +163,18 @@ void TF2Bridge_NetSendIntent(BridgeIntentPacket* pkt)
     {
         pkt->weaponflags |= BRIDGE_WEAPON_FIRED;
         g_weaponFiredPending = false;
+    }
+
+    if (g_rocketCount > 0)
+    {
+        pkt->rocketCount = g_rocketCount;
+        memcpy(pkt->rocketEntIndex, g_rocketEntIndex, sizeof(g_rocketEntIndex));
+        memcpy(pkt->rocketPos, g_rocketPos, sizeof(g_rocketPos));
+        memcpy(pkt->rocketRadius, g_rocketRadius, sizeof(g_rocketRadius));
+        g_rocketCount = 0;
+        memset(g_rocketEntIndex, 0, sizeof(g_rocketEntIndex));
+        memset(g_rocketPos, 0, sizeof(g_rocketPos));
+        memset(g_rocketRadius, 0, sizeof(g_rocketRadius));
     }
 
     if (g_hitscanCount > 0)
