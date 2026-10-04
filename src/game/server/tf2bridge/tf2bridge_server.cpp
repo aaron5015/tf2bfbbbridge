@@ -199,7 +199,20 @@ public:
             in.buttons = (uint32_t)cmd->buttons; // IN_* bits match BRIDGE_IN_*
             in.tfclass = pPlayer->GetPlayerClass() ? pPlayer->GetPlayerClass()->GetClassIndex() : 0;
             in.tfhealth = pPlayer->GetHealth();
-            if (pPlayer->GetActiveTFWeapon() != NULL && pPlayer->GetActiveTFWeapon()->IsMeleeWeapon())
+            CTFWeaponBase* activeWeapon = pPlayer->GetActiveTFWeapon();
+            static CTFWeaponBase* sLastWeapon = NULL;
+            static float sLastPrimaryAttackTime = -1.0f;
+            if (activeWeapon != sLastWeapon)
+            {
+                sLastWeapon = activeWeapon;
+                sLastPrimaryAttackTime = activeWeapon != NULL ? activeWeapon->GetLastPrimaryAttackTime() : -1.0f;
+            }
+            else if (activeWeapon != NULL && activeWeapon->GetLastPrimaryAttackTime() != sLastPrimaryAttackTime)
+            {
+                in.weaponflags |= BRIDGE_WEAPON_FIRED;
+                sLastPrimaryAttackTime = activeWeapon->GetLastPrimaryAttackTime();
+            }
+            if (activeWeapon != NULL && activeWeapon->IsMeleeWeapon())
                 in.weaponflags |= BRIDGE_WEAPON_MELEE;
 
             const Vector origin = pPlayer->GetAbsOrigin();
