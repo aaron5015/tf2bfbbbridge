@@ -32,6 +32,7 @@
 #include "igamesystem.h"
 #include "player.h"
 #include "tf_player.h"
+#include "tf_weaponbase.h"
 #include "usercmd.h"
 
 #include "tf2bridge_net.h"
@@ -198,6 +199,8 @@ public:
             in.buttons = (uint32_t)cmd->buttons; // IN_* bits match BRIDGE_IN_*
             in.tfclass = pPlayer->GetPlayerClass() ? pPlayer->GetPlayerClass()->GetClassIndex() : 0;
             in.tfhealth = pPlayer->GetHealth();
+            if (pPlayer->GetActiveTFWeapon() != NULL && pPlayer->GetActiveTFWeapon()->IsMeleeWeapon())
+                in.weaponflags |= BRIDGE_WEAPON_MELEE;
 
             const Vector origin = pPlayer->GetAbsOrigin();
             const Vector vel = pPlayer->GetAbsVelocity();
