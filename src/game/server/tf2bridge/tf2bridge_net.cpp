@@ -32,10 +32,33 @@ static uint32_t g_sendSeq = 0;
 static uint32_t g_lastSeq = 0;
 static bool g_haveSeq = false;
 static bool g_weaponFiredPending = false;
+static uint32_t g_hitscanCount = 0;
+static float g_hitscanOrigin[3] = { 0.0f, 0.0f, 0.0f };
+static float g_hitscanDir[BRIDGE_MAX_HITSCAN_RAYS][3] = {};
+static float g_hitscanRange = 0.0f;
 
 void TF2Bridge_NotifyWeaponFired()
 {
     g_weaponFiredPending = true;
+}
+
+void TF2Bridge_NotifyHitscanRay(const float origin[3], const float dir[3], float range)
+{
+    if (g_hitscanCount >= BRIDGE_MAX_HITSCAN_RAYS)
+        return;
+
+    if (g_hitscanCount == 0)
+    {
+        g_hitscanOrigin[0] = origin[0];
+        g_hitscanOrigin[1] = origin[1];
+        g_hitscanOrigin[2] = origin[2];
+        g_hitscanRange = range;
+    }
+
+    g_hitscanDir[g_hitscanCount][0] = dir[0];
+    g_hitscanDir[g_hitscanCount][1] = dir[1];
+    g_hitscanDir[g_hitscanCount][2] = dir[2];
+    ++g_hitscanCount;
 }
 
 bool TF2Bridge_NetOpen()
@@ -123,6 +146,17 @@ void TF2Bridge_NetSendIntent(BridgeIntentPacket* pkt)
     {
         pkt->weaponflags |= BRIDGE_WEAPON_FIRED;
         g_weaponFiredPending = false;
+    }
+
+    if (g_hitscanCount > 0)
+    {
+        pkt->hitscanCount = g_hitscanCount;
+        pkt->hitscanRange = g_hitscanRange;
+        memcpy(pkt->hitscanOrigin, g_hitscanOrigin, sizeof(g_hitscanOrigin));
+        memcpy(pkt->hitscanDir, g_hitscanDir, sizeof(g_hitscanDir));
+        g_hitscanCount = 0;
+        g_hitscanRange = 0.0f;
+        memset(g_hitscanDir, 0, sizeof(g_hitscanDir));
     }
 
     pkt->magic = BRIDGE_MAGIC_INTENT;
