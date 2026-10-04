@@ -20,7 +20,7 @@ extern IPhysicsSurfaceProps* physprops;
 // ---- settings (replicated so a listen-server client sees the host's values) ----
 
 // Source units per BFBB unit. Shared with the server-side bridge.
-ConVar bfbb_unit_scale("bfbb_unit_scale", "50", FCVAR_REPLICATED,
+ConVar bfbb_unit_scale("bfbb_unit_scale", "40", FCVAR_REPLICATED,
     "Source units per BFBB world unit");
 // Which BFBB scene is loaded. The server writes this from the bridge; the
 // replicated value tells the client to load the same file.
