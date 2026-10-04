@@ -209,8 +209,13 @@ public:
             }
             else if (activeWeapon != NULL && activeWeapon->GetLastPrimaryAttackTime() != sLastPrimaryAttackTime)
             {
+                const float oldPrimaryAttackTime = sLastPrimaryAttackTime;
+                const float newPrimaryAttackTime = activeWeapon->GetLastPrimaryAttackTime();
+                const bool melee = activeWeapon->IsMeleeWeapon();
                 in.weaponflags |= BRIDGE_WEAPON_FIRED;
-                sLastPrimaryAttackTime = activeWeapon->GetLastPrimaryAttackTime();
+                sLastPrimaryAttackTime = newPrimaryAttackTime;
+                Msg("[bfbb] primary attack event: weapon=%s melee=%d time %.6f -> %.6f\\n",
+                    activeWeapon->GetClassname(), (int)melee, oldPrimaryAttackTime, newPrimaryAttackTime);
             }
             if (activeWeapon != NULL && activeWeapon->IsMeleeWeapon())
                 in.weaponflags |= BRIDGE_WEAPON_MELEE;
