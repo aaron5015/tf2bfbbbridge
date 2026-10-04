@@ -8,6 +8,9 @@
 #include "tf_weaponbase_melee.h"
 #include "effect_dispatch_data.h"
 #include "tf_gamerules.h"
+#ifdef GAME_DLL
+#include "tf2bridge_net.h"
+#endif
 
 // Server specific.
 #if !defined( CLIENT_DLL )
@@ -202,6 +205,11 @@ void CTFWeaponBaseMelee::PrimaryAttack()
 
 	// Swing the weapon.
 	Swing( pPlayer );
+
+#ifdef GAME_DLL
+	// The weapon passed CanAttack() and the swing/cooldown was committed.
+	TF2Bridge_NotifyWeaponFired();
+#endif
 
 	m_bCurrentAttackIsDuringDemoCharge = pPlayer->m_Shared.GetNextMeleeCrit() != MELEE_NOCRIT;
 
