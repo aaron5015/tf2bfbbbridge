@@ -2465,8 +2465,22 @@ void CTFWeaponBase::ItemPostFrame( void )
 	if ( m_bLowered )
 		return;
 
+	// Diagnostic: the inherited item frame performs the virtual PrimaryAttack() dispatch.
+	// Record whether a ready primary attack moved its next-fire time into the future.
+	const bool bBridgeAttackHeld = ( pOwner->m_nButtons & IN_ATTACK ) != 0;
+	const float flBridgeNextPrimaryBefore = m_flNextPrimaryAttack;
+
 	// Call the base item post frame.
 	BaseClass::ItemPostFrame();
+
+#ifdef GAME_DLL
+	if ( bBridgeAttackHeld && flBridgeNextPrimaryBefore <= gpGlobals->curtime &&
+		m_flNextPrimaryAttack > gpGlobals->curtime )
+	{
+		Msg( "[bfbb] attack-frame diagnostic: weapon=%s next %.6f -> %.6f\\n",
+			GetClassname(), flBridgeNextPrimaryBefore, m_flNextPrimaryAttack );
+	}
+#endif
 
 	// Check for reload singly interrupts.
 	if ( m_bReloadsSingly )
