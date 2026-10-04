@@ -5,6 +5,9 @@
 //=============================================================================
 #include "cbase.h"
 #include "tf_fx_shared.h"
+#ifdef GAME_DLL
+#include "../../server/tf2bridge/tf2bridge_net.h"
+#endif
 #include "tf_weaponbase.h"
 #include "takedamageinfo.h"
 #include "tf_gamerules.h"
@@ -377,6 +380,14 @@ void FX_FireBullets( CTFWeaponBase *pWpn, int iPlayer, const Vector &vecOrigin, 
 		fireInfo.m_vecDirShooting = vecShootForward + ( x *  flSpread * vecShootRight ) + ( y * flSpread * vecShootUp );
 		fireInfo.m_vecDirShooting.NormalizeInPlace();
 		fireInfo.m_bUseServerRandomSeed = pWpn && pWpn->UseServerRandomSeed();
+
+#ifdef GAME_DLL
+		{
+			const float origin[3] = { fireInfo.m_vecSrc.x, fireInfo.m_vecSrc.y, fireInfo.m_vecSrc.z };
+			const float dir[3] = { fireInfo.m_vecDirShooting.x, fireInfo.m_vecDirShooting.y, fireInfo.m_vecDirShooting.z };
+			TF2Bridge_NotifyHitscanRay(origin, dir, fireInfo.m_flDistance);
+		}
+#endif
 
 		// Fire a bullet.
 		pPlayer->FireBullet( pWpn, fireInfo, bDoEffects, nDamageType, nCustomDamageType );
