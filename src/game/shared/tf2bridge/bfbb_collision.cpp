@@ -5,6 +5,7 @@
 #include "vphysics_interface.h"
 #include "utlvector.h"
 #include "engine/IEngineTrace.h"
+#include "filesystem.h"
 
 #ifdef GAME_DLL
 #include "debugoverlay_shared.h"
@@ -24,7 +25,7 @@ ConVar bfbb_unit_scale("bfbb_unit_scale", "50", FCVAR_REPLICATED,
 // Which BFBB scene is loaded. The server writes this from the bridge; the
 // replicated value tells the client to load the same file.
 ConVar bfbb_scene("bfbb_scene", "0", FCVAR_REPLICATED, "BFBB scene id (set by the bridge)");
-ConVar bfbb_collision_dir("bfbb_collision_dir", ".", FCVAR_REPLICATED,
+ConVar bfbb_collision_dir("bfbb_collision_dir", "D:/bfbbpc/bfbb/bin/here", FCVAR_REPLICATED,
                           "Folder holding bfbb_collision_<scene>.bfcl (use forward slashes)");
 // BFBB is left-handed and Source right-handed, so the axis mapping mirrors the
 // mesh and flips every triangle's winding. This swaps it back. If walking on the
@@ -72,8 +73,8 @@ static void Load(unsigned int scene)
     char path[512];
     Q_snprintf(path, sizeof(path), "%s/bfbb_collision_%08x.bfcl", bfbb_collision_dir.GetString(), scene);
 
-    FILE* f = fopen(path, "rb");
-    if (!f)
+    FileHandle_t f = g_pFullFileSystem->Open(path, "rb");
+    if (f == FILESYSTEM_INVALID_HANDLE)
     {
         Warning("[bfbb] cannot open %s (set bfbb_collision_dir)\n", path);
         return;
@@ -82,12 +83,16 @@ static void Load(unsigned int scene)
     char magic[4];
     unsigned int version = 0, fileScene = 0, count = 0;
     float bounds[6];
-    if (fread(magic, 1, 4, f) != 4 || memcmp(magic, "BFCL", 4) != 0 || fread(&version, 4, 1, f) != 1 ||
-        version != 1 || fread(&fileScene, 4, 1, f) != 1 || fread(&count, 4, 1, f) != 1 ||
-        fread(bounds, 4, 6, f) != 6)
+    if (g_pFullFileSystem->Read(magic, sizeof(magic), f) != sizeof(magic) ||
+        memcmp(magic, "BFCL", 4) != 0 ||
+        g_pFullFileSystem->Read(&version, sizeof(version), f) != sizeof(version) ||
+        version != 1 ||
+        g_pFullFileSystem->Read(&fileScene, sizeof(fileScene), f) != sizeof(fileScene) ||
+        g_pFullFileSystem->Read(&count, sizeof(count), f) != sizeof(count) ||
+        g_pFullFileSystem->Read(bounds, sizeof(bounds), f) != sizeof(bounds))
     {
         Warning("[bfbb] %s is not a valid BFCL v1 file\n", path);
-        fclose(f);
+        g_pFullFileSystem->Close(f);
         return;
     }
 
@@ -101,7 +106,7 @@ static void Load(unsigned int scene)
     for (unsigned int i = 0; i < count; i++)
     {
         BfclTri t;
-        if (fread(&t, sizeof(t), 1, f) != 1)
+        if (g_pFullFileSystem->Read(&t, sizeof(t), f) != sizeof(t))
             break;
 
         Vector a = BfbbToSource(t.v[0], t.v[1], t.v[2], s);
@@ -120,7 +125,7 @@ static void Load(unsigned int scene)
         s_verts.AddToTail(c);
         added++;
     }
-    fclose(f);
+    g_pFullFileSystem->Close(f);
 
     s_pCollide = physcollision->ConvertPolysoupToCollide(soup, true);
     physcollision->PolysoupDestroy(soup);
