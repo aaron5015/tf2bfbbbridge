@@ -31,6 +31,12 @@ static sockaddr_in g_bfbb;
 static uint32_t g_sendSeq = 0;
 static uint32_t g_lastSeq = 0;
 static bool g_haveSeq = false;
+static bool g_weaponFiredPending = false;
+
+void TF2Bridge_NotifyWeaponFired()
+{
+    g_weaponFiredPending = true;
+}
 
 bool TF2Bridge_NetOpen()
 {
@@ -112,6 +118,13 @@ void TF2Bridge_NetSendIntent(BridgeIntentPacket* pkt)
 {
     if (g_sock == kBad)
         return;
+
+    if (g_weaponFiredPending)
+    {
+        pkt->weaponflags |= BRIDGE_WEAPON_FIRED;
+        g_weaponFiredPending = false;
+    }
+
     pkt->magic = BRIDGE_MAGIC_INTENT;
     pkt->seq = ++g_sendSeq;
     sendto(g_sock, (const char*)pkt, sizeof(*pkt), 0, (const sockaddr*)&g_bfbb, sizeof(g_bfbb));
