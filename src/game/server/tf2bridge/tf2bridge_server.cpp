@@ -33,6 +33,7 @@
 #include "player.h"
 #include "tf_player.h"
 #include "tf_weaponbase.h"
+#include "tf_projectile_rocket.h"
 #include "usercmd.h"
 
 #include "tf2bridge_net.h"
@@ -50,6 +51,8 @@ extern ConVar bfbb_scene;
 static ConVar bfbb_coll_draw("bfbb_coll_draw", "0", FCVAR_NONE,
     "Draw BFBB collision triangles near the host (green up, red down, yellow walls)");
 static ConVar bfbb_bridge_debug("bfbb_bridge_debug", "0", FCVAR_NONE, "Print bridge traffic");
+static ConVar bfbb_rocket_debug_lifetime("bfbb_rocket_debug_lifetime", "3.0", FCVAR_NONE,
+    "Seconds to keep BFBB rocket impact/radius diagnostics visible; 0 disables rocket diagnostics");
 
 // Source's default run speed for the usercmd axes (cl_forwardspeed / cl_sidespeed).
 static const float kCmdAxisMax = 450.0f;
@@ -209,6 +212,27 @@ public:
             in.px = origin.x; in.py = origin.y; in.pz = origin.z;
             in.vx = vel.x;    in.vy = vel.y;    in.vz = vel.z;
             in.ex = eye.x;    in.ey = eye.y;    in.ez = eye.z;
+
+            // Diagnostic-only rocket bridge. We send the actual TF2 rocket
+            // positions and GetRadius() value; BFBB performs the world sweep.
+            // This deliberately does not alter TF2 projectile physics or damage.
+            in.rocketDebugLifetime = MAX(0.0f, bfbb_rocket_debug_lifetime.GetFloat());
+            if (in.rocketDebugLifetime > 0.0f)
+            {
+                CBaseEntity* rocket = NULL;
+                while ((rocket = gEntList.FindEntityByClassname(rocket, "tf_projectile_rocket")) != NULL)
+                {
+                    CTFBaseRocket* baseRocket = dynamic_cast<CTFBaseRocket*>(rocket);
+                    if (baseRocket == NULL)
+                        continue;
+
+                    const Vector pos = baseRocket->GetAbsOrigin();
+                    TF2Bridge_NotifyRocket(
+                        baseRocket->entindex(),
+                        &pos.x,
+                        baseRocket->GetRadius());
+                }
+            }
 
             TF2Bridge_NetSendIntent(&in);
         }
