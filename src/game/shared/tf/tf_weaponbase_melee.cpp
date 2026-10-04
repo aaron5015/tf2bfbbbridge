@@ -9,7 +9,7 @@
 #include "effect_dispatch_data.h"
 #include "tf_gamerules.h"
 #ifdef GAME_DLL
-#include "tf2bridge_net.h"
+#include "../../server/tf2bridge/tf2bridge_net.h"
 #endif
 
 // Server specific.
