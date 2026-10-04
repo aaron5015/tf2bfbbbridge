@@ -6,6 +6,9 @@
 
 #include "cbase.h"
 #include "tf_weaponbase_gun.h"
+#ifdef GAME_DLL
+#include "tf2bridge_net.h"
+#endif
 #include "tf_fx_shared.h"
 #include "effect_dispatch_data.h"
 #include "takedamageinfo.h"
@@ -161,6 +164,11 @@ void CTFWeaponBaseGun::PrimaryAttack( void )
 
 	CBaseEntity* pProj = FireProjectile( pPlayer );
 	ModifyProjectile( pProj );
+
+#ifdef GAME_DLL
+	// FireProjectile() is the weapon's actual successful primary-fire point.
+	TF2Bridge_NotifyWeaponFired();
+#endif
 
 	if ( !UsesClipsForAmmo1() )
 	{
