@@ -16,6 +16,7 @@ bool TF2Bridge_NetIsOpen();
 bool TF2Bridge_NetRecvState(BridgeStatePacket* out);
 
 // Sends one intent packet to BFBB (127.0.0.1:BRIDGE_PORT_BFBB). seq is filled in.
+void TF2Bridge_NotifyWeaponFired();
 void TF2Bridge_NetSendIntent(BridgeIntentPacket* pkt);
 
 #endif
