@@ -7,7 +7,7 @@
 #include "cbase.h"
 #include "tf_weaponbase_gun.h"
 #ifdef GAME_DLL
-#include "tf2bridge_net.h"
+#include "../../server/tf2bridge/tf2bridge_net.h"
 #endif
 #include "tf_fx_shared.h"
 #include "effect_dispatch_data.h"
