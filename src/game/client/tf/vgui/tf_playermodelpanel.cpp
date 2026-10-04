@@ -1319,7 +1319,9 @@ int ClassZoomZ[] =
 	30, // TF_CLASS_HEAVYWEAPONS,
 	22, // TF_CLASS_PYRO,
 	27, // TF_CLASS_SPY,
-	20, // TF_CLASS_ENGINEER,		
+	20, // TF_CLASS_ENGINEER,	
+	20, // TF_CLASS_JESUSCHRIST,
+	30, // TF_CLASS_TEAPOTBATTLER,	
 };
 
 //-----------------------------------------------------------------------------

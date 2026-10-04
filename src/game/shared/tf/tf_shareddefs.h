@@ -215,6 +215,8 @@ enum ETFClass
 	TF_CLASS_ENGINEER,		
 
 	// Add any new classes after Engineer
+	TF_CLASS_JESUSCHRIST,
+	TF_CLASS_TEAPOTBATTLER,
 	TF_CLASS_CIVILIAN,		// TF_LAST_NORMAL_CLASS
 	TF_CLASS_COUNT_ALL,
 
@@ -519,7 +521,7 @@ enum ETFWeaponType
 	//
 	// ADD NEW WEAPONS HERE TO AVOID BREAKING DEMOS
 	//
-
+	AARON_WEAPON_TEAPOTMUG,
 	TF_WEAPON_COUNT
 };
 
@@ -636,7 +638,7 @@ extern const char *g_pszInvasionMaps[];
 bool IsPlayingInvasionMap( void );
 
 #define SCOREBOARD_DOMINATION_ICONS		17
-#define SCOREBOARD_CLASS_ICONS			19
+#define SCOREBOARD_CLASS_ICONS			23
 #define SCOREBOARD_PING_ICONS			6
 
 extern const char *g_pszClassIcons[];

@@ -1465,6 +1465,8 @@ static PlayerClassInfo_t gs_PlayerClassData[] =
 	{ "Pyro",		"#TF_Class_Name_Pyro" },
 	{ "Spy",		"#TF_Class_Name_Spy" },
 	{ "Engineer",	"#TF_Class_Name_Engineer" },
+	{ "JesusChrist",	"#TF_Class_Name_JesusChrist" },
+	{ "TeapotBattler",	"#TF_Class_Name_TeapotBattler" },
 	{ "Invalid",	"" }						// lots of code loops over these classes based on LOADOUT_COUNT, which is wrong, but this allows them to do it safely
 };
 

@@ -840,6 +840,8 @@ bool CTFBot::GetWeightDesiredClassToSpawn( CUtlVector< ETFClass > &vecClassToSpa
 		{ TF_CLASS_MEDIC,			4, 4, 1, { 1, 1, 2, 2 } },
 		{ TF_CLASS_SNIPER,			5, 0, 0, { 0, 1, 1, 1 } },
 		{ TF_CLASS_SPY,				5, 0, 0, { 0, 1, 2, 2 } },
+		{ TF_CLASS_JESUSCHRIST,		0, 0, 0, { 0, 0, 2, 2 } }, //AARONTODO set bot limits
+		{ TF_CLASS_TEAPOTBATTLER,	0, 0, 0, { 0, 0, 2, 2 } },
 
 		{ TF_CLASS_UNDEFINED,		0, -1 },
 	};
@@ -855,6 +857,8 @@ bool CTFBot::GetWeightDesiredClassToSpawn( CUtlVector< ETFClass > &vecClassToSpa
 		{ TF_CLASS_SNIPER,			5, 0, 0, { 0, 1, 1, 1 } },
 		{ TF_CLASS_SPY,				5, 0, 0, { 0, 1, 2, 2 } },
 		{ TF_CLASS_ENGINEER,		5, 0, 0, { 1, 1, 1, 1 } },
+		{ TF_CLASS_JESUSCHRIST,		0, 0, 1, { 0, 0, 2, 2 } }, //AARONTODO set bot limits
+		{ TF_CLASS_TEAPOTBATTLER,	0, 0, 1, { 0, 0, 2, 2 } },
 
 		{ TF_CLASS_UNDEFINED,		0, -1 },
 	};
@@ -870,6 +874,8 @@ bool CTFBot::GetWeightDesiredClassToSpawn( CUtlVector< ETFClass > &vecClassToSpa
 		{ TF_CLASS_SNIPER,			0, -1 },
 		{ TF_CLASS_SPY,				0, -1 },
 		{ TF_CLASS_ENGINEER,		0, -1 },
+		{ TF_CLASS_JESUSCHRIST,		0, 0, 1, { 0, 0, 2, 2 } }, //AARONTODO set bot limits
+		{ TF_CLASS_TEAPOTBATTLER,	0, 0, 1, { 0, 0, 2, 2 } },
 
 		{ TF_CLASS_UNDEFINED,		0, -1 },
 	};
@@ -3092,6 +3098,8 @@ float CTFBot::GetThreatDanger( CBaseCombatCharacter *who ) const
 
 		case TF_CLASS_SOLDIER:
 		case TF_CLASS_HEAVYWEAPONS:
+		case TF_CLASS_JESUSCHRIST:
+		case TF_CLASS_TEAPOTBATTLER:
 			return 0.8f;		// 4/5
 
 		case TF_CLASS_PYRO:

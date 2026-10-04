@@ -50,6 +50,8 @@ const char *g_pszTipsClassImages[] =
 	"class_portraits/pyro",	// TF_CLASS_PYRO,
 	"class_portraits/spy",		// TF_CLASS_SPY,
 	"class_portraits/engineer",		// TF_CLASS_ENGINEER,		
+	"class_portraits/jesuschrist",		// TF_CLASS_JESUSCHRIST,	AARONTODO actual portraits
+	"class_portraits/teapotbattler",		// TF_CLASS_TEAPOTBATTLER,	
 };
 
 ClassDetails_t g_PerClassStatDetails[15] =

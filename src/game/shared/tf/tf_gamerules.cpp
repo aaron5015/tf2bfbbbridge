@@ -173,6 +173,8 @@ static int g_TauntCamRagdollAchievements[] =
 	0,		// TF_CLASS_PYRO,
 	ACHIEVEMENT_TF_SPY_FREEZECAM_FLICK,		// TF_CLASS_SPY,
 	0,		// TF_CLASS_ENGINEER,
+	0,		// TF_CLASS_JESUSCHRIST,
+	0,		// TF_CLASS_TEAPOTBATTLER,
 
 	0,		// TF_CLASS_CIVILIAN,
 	0,		// TF_CLASS_COUNT_ALL,
@@ -191,6 +193,8 @@ static int g_TauntCamAchievements[] =
 	ACHIEVEMENT_TF_PYRO_FREEZECAM_TAUNTS,		// TF_CLASS_PYRO,
 	0,		// TF_CLASS_SPY,
 	ACHIEVEMENT_TF_ENGINEER_FREEZECAM_TAUNT,	// TF_CLASS_ENGINEER,
+	0,	// TF_CLASS_JESUSCHRIST,
+	0,	// TF_CLASS_TEAPOTBATTLER,
 	0,		// TF_CLASS_CIVILIAN,
 	0,		// TF_CLASS_COUNT_ALL,
 };
@@ -209,6 +213,8 @@ static int g_TauntCamAchievements2[] =
 	0,		// TF_CLASS_PYRO,
 	0,		// TF_CLASS_SPY,
 	0,		// TF_CLASS_ENGINEER,
+	0,		// TF_CLASS_JESUSCHRIST,
+	0,		// TF_CLASS_TEAPOTBATTLER,
 
 	0,		// TF_CLASS_CIVILIAN,
 	0,		// TF_CLASS_COUNT_ALL,
@@ -819,6 +825,8 @@ ConVar tf_tournament_classlimit_heavy( "tf_tournament_classlimit_heavy", "-1", F
 ConVar tf_tournament_classlimit_pyro( "tf_tournament_classlimit_pyro", "-1", FCVAR_REPLICATED, "Tournament mode per-team class limit for Pyros.\n" );
 ConVar tf_tournament_classlimit_spy( "tf_tournament_classlimit_spy", "-1", FCVAR_REPLICATED, "Tournament mode per-team class limit for Spies.\n" );
 ConVar tf_tournament_classlimit_engineer( "tf_tournament_classlimit_engineer", "-1", FCVAR_REPLICATED, "Tournament mode per-team class limit for Engineers.\n" );
+ConVar tf_tournament_classlimit_jesuschrist("tf_tournament_classlimit_jesuschrist", "-1", FCVAR_REPLICATED, "Tournament mode per-team class limit for Jesus Christs.\n");
+ConVar tf_tournament_classlimit_teapotbattler("tf_tournament_classlimit_teapotbattler", "-1", FCVAR_REPLICATED, "Tournament mode per-team class limit for Teapot Battlers.\n");
 ConVar tf_tournament_classchange_allowed( "tf_tournament_classchange_allowed", "1", FCVAR_REPLICATED, "Allow players to change class while the game is active?.\n" );
 ConVar tf_tournament_classchange_ready_allowed( "tf_tournament_classchange_ready_allowed", "1", FCVAR_REPLICATED, "Allow players to change class after they are READY?.\n" );
 
@@ -1323,7 +1331,7 @@ static CViewVectors g_TFViewVectors(
 	Vector( 0, 0, 14 )		//VEC_DEAD_VIEWHEIGHT (m_vDeadViewHeight) dead view height
 );							
 
-Vector g_TFClassViewVectors[11] =
+Vector g_TFClassViewVectors[TF_LAST_NORMAL_CLASS + 1] =
 {
 	Vector( 0, 0, 72 ),		// TF_CLASS_UNDEFINED
 
@@ -1336,6 +1344,8 @@ Vector g_TFClassViewVectors[11] =
 	Vector( 0, 0, 68 ),		// TF_CLASS_PYRO,
 	Vector( 0, 0, 75 ),		// TF_CLASS_SPY,
 	Vector( 0, 0, 68 ),		// TF_CLASS_ENGINEER,
+	Vector( 0, 0, 68 ),		// TF_CLASS_JESUSCHRIST,
+	Vector( 0, 0, 75 ),		// TF_CLASS_TEAPOTBATTLER,
 
 	Vector( 0, 0, 65 ),		// TF_CLASS_CIVILIAN,		// TF_LAST_NORMAL_CLASS
 };
@@ -11269,6 +11279,8 @@ static kill_eater_event_t g_eClassKillEvents[] =
 	kKillEaterEvent_PyroKill,					// TF_CLASS_PYRO
 	kKillEaterEvent_SpyKill,					// TF_CLASS_SPY
 	kKillEaterEvent_EngineerKill,				// TF_CLASS_ENGINEER
+	kKillEaterEvent_JesusChristKill,			// TF_CLASS_JESUSCHRIST
+	kKillEaterEvent_TeapotBattlerKill,			// TF_CLASS_TEAPOTBATTLER
 };
 COMPILE_TIME_ASSERT( ARRAYSIZE( g_eClassKillEvents ) == (TF_LAST_NORMAL_CLASS - TF_FIRST_NORMAL_CLASS) );
 
@@ -11284,6 +11296,8 @@ static kill_eater_event_t g_eRobotClassKillEvents[] =
 	kKillEaterEvent_RobotPyroKill,					// TF_CLASS_PYRO
 	kKillEaterEvent_RobotSpyKill,					// TF_CLASS_SPY
 	kKillEaterEvent_RobotEngineerKill,				// TF_CLASS_ENGINEER
+	kKillEaterEvent_RobotJesusChristKill,			// TF_CLASS_JESUSCHRIST
+	kKillEaterEvent_RobotTeapotBattlerKill,			// TF_CLASS_ENGINEER
 };
 COMPILE_TIME_ASSERT( ARRAYSIZE( g_eRobotClassKillEvents ) == (TF_LAST_NORMAL_CLASS - TF_FIRST_NORMAL_CLASS) );
 
@@ -17629,6 +17643,8 @@ int CTFGameRules::GetClassLimit( int iClass )
 		case TF_CLASS_PYRO: return tf_tournament_classlimit_pyro.GetInt(); break;
 		case TF_CLASS_SPY: return tf_tournament_classlimit_spy.GetInt(); break;
 		case TF_CLASS_ENGINEER: return tf_tournament_classlimit_engineer.GetInt(); break;
+		case TF_CLASS_JESUSCHRIST: return tf_tournament_classlimit_jesuschrist.GetInt(); break;
+		case TF_CLASS_TEAPOTBATTLER: return tf_tournament_classlimit_teapotbattler.GetInt(); break;
 		default:
 			break;
 		}
@@ -19341,6 +19357,8 @@ BEGIN_DATADESC( CTrainingModeLogic )
 	DEFINE_OUTPUT( m_outputOnPlayerSpawnAsPyro, "OnPlayerSpawnAsPyro" ),
 	DEFINE_OUTPUT( m_outputOnPlayerSpawnAsSpy, "OnPlayerSpawnAsSpy" ),
 	DEFINE_OUTPUT( m_outputOnPlayerSpawnAsEngineer, "OnPlayerSpawnAsEngineer" ),
+	DEFINE_OUTPUT( m_outputOnPlayerSpawnAsJesusChrist, "OnPlayerSpawnAsJesusChrist" ),
+	DEFINE_OUTPUT( m_outputOnPlayerSpawnAsTeapotBattler, "OnPlayerSpawnAsTeapotBattler" ),
 	DEFINE_OUTPUT( m_outputOnPlayerDied, "OnPlayerDied" ),
 	DEFINE_OUTPUT( m_outputOnBotDied, "OnBotDied" ),
 	DEFINE_OUTPUT( m_outputOnPlayerSwappedToWeaponSlotPrimary, "OnPlayerSwappedToPrimary" ),
@@ -19400,6 +19418,8 @@ void CTrainingModeLogic::OnPlayerSpawned( CTFPlayer* pPlayer )
 	case TF_CLASS_PYRO:			m_outputOnPlayerSpawnAsPyro.FireOutput( this, this ); break;
 	case TF_CLASS_SPY:			m_outputOnPlayerSpawnAsSpy.FireOutput( this, this ); break;
 	case TF_CLASS_ENGINEER:		m_outputOnPlayerSpawnAsEngineer.FireOutput( this, this ); break;
+	case TF_CLASS_JESUSCHRIST:	m_outputOnPlayerSpawnAsJesusChrist.FireOutput(this, this); break;
+	case TF_CLASS_TEAPOTBATTLER: m_outputOnPlayerSpawnAsTeapotBattler.FireOutput(this, this); break;
 	}
 }
 

@@ -22,6 +22,7 @@
 #include "tf_weapon_buff_item.h"
 #include "halloween/tf_weapon_spellbook.h"
 #include "tf_logic_player_destruction.h"
+#include "tf2bridge/bfbb_collision.h"
 
 #ifdef CLIENT_DLL
 	#include "c_tf_player.h"
@@ -2314,17 +2315,23 @@ CBaseHandle CTFGameMovement::TestPlayerPosition( const Vector& pos, int collisio
 //-----------------------------------------------------------------------------
 // Traces player movement + position
 //-----------------------------------------------------------------------------
-void CTFGameMovement::TracePlayerBBox( const Vector& start, const Vector& end, unsigned int fMask, int collisionGroup, trace_t& pm )
+void CTFGameMovement::TracePlayerBBox(const Vector& start, const Vector& end, unsigned int fMask, int collisionGroup, trace_t& pm)
 {
-	if( tf_solidobjects.GetBool() == false )
-		return BaseClass::TracePlayerBBox( start, end, fMask, collisionGroup, pm );
+	if (tf_solidobjects.GetBool() == false)
+	{
+		BaseClass::TracePlayerBBox(start, end, fMask, collisionGroup, pm);
+	}
+	else
+	{
+		Ray_t ray;
+		ray.Init(start, end, GetPlayerMins(), GetPlayerMaxs());
 
-	Ray_t ray;
-	ray.Init( start, end, GetPlayerMins(), GetPlayerMaxs() );
-	
-	CTraceFilterObject traceFilter( mv->m_nPlayerHandle.Get(), collisionGroup );
+		CTraceFilterObject traceFilter(mv->m_nPlayerHandle.Get(), collisionGroup);
 
-	enginetrace->TraceRay( ray, fMask, &traceFilter, &pm );
+		enginetrace->TraceRay(ray, fMask, &traceFilter, &pm);
+	}
+
+	BFBBColl_MergeHullTrace(start, end, GetPlayerMins(), GetPlayerMaxs(), pm);   // <- the new line
 }
 
 //-----------------------------------------------------------------------------

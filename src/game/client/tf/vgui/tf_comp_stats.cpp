@@ -120,6 +120,8 @@ public:
 			SetupClassIcon( pStatsContainer, "medic", TF_CLASS_MEDIC, stats );
 			SetupClassIcon( pStatsContainer, "sniper", TF_CLASS_SNIPER, stats );
 			SetupClassIcon( pStatsContainer, "spy", TF_CLASS_SPY, stats );
+			SetupClassIcon( pStatsContainer, "jesuschrist", TF_CLASS_JESUSCHRIST, stats ); //AARONTODO actual icon
+			SetupClassIcon( pStatsContainer, "teapotbattler", TF_CLASS_TEAPOTBATTLER, stats );
 
 			SetupMedalForStat( pStatsContainer, stats.kills_medal(), "kills" );
 			SetupMedalForStat( pStatsContainer, stats.damage_medal(), "damage" );

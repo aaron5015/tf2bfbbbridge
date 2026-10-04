@@ -374,6 +374,16 @@ $Project "Server (TF)"
 				}
 			}
 
+			$Folder "TF2Bridge"
+			{
+				$File "$SRCDIR\game\server\tf2bridge\tf2bridge_net.cpp"
+	    		$File "$SRCDIR\game\server\tf2bridge\tf2bridge_net.h"
+	    		$File "$SRCDIR\game\server\tf2bridge\tf2bridge_server.cpp"
+	    		$File "$SRCDIR\game\server\tf2bridge\iTF2BridgeProto.h"
+	    		$File "$SRCDIR\game\shared\tf2bridge\bfbb_collision.cpp"
+	    		$File "$SRCDIR\game\shared\tf2bridge\bfbb_collision.h"
+			}
+
 			$Folder	"Weapon"
 			{
 				$File	"$SRCDIR\game\shared\tf\tf_dropped_weapon.cpp"
@@ -490,6 +500,10 @@ $Project "Server (TF)"
 				$File	"$SRCDIR\game\shared\tf\tf_weapon_mechanical_arm.h"
 				$File	"$SRCDIR\game\shared\tf\tf_weapon_rocketpack.cpp"
 				$File	"$SRCDIR\game\shared\tf\tf_weapon_rocketpack.h"
+				$File	"$SRCDIR\game\shared\tf\sdk_weapon_chargemelee.cpp"
+				$File	"$SRCDIR\game\shared\tf\sdk_weapon_chargemelee.h"
+				$File	"$SRCDIR\game\shared\tf\aaron_weapon_teapotmug.cpp"
+				$File	"$SRCDIR\game\shared\tf\aaron_weapon_teapotmug.h"
 			}
 
 			$Folder	"Raid"

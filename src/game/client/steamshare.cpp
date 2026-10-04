@@ -108,6 +108,12 @@ static const char *GetTimelineClassImage( int nTeam, int nClass )
 	case TF_CLASS_ENGINEER:
 		pszReturnImage = ( nTeam == TF_TEAM_BLUE ) ? "engineer_blu" : "engineer_red";
 		break;
+	case TF_CLASS_JESUSCHRIST:
+		pszReturnImage = (nTeam == TF_TEAM_BLUE) ? "jesuschrist_blu" : "jesuschrist_red"; //AARONTODO add actual images
+		break;
+	case TF_CLASS_TEAPOTBATTLER:
+		pszReturnImage = (nTeam == TF_TEAM_BLUE) ? "teapotbattler_blu" : "teapotbattler_red";
+		break;
 	default:
 		break;
 	}

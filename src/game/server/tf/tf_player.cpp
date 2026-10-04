@@ -1966,6 +1966,8 @@ void CTFPlayer::RuneRegenThink( void )
 		flAmount = 10;
 		break;
 	case TF_CLASS_HEAVYWEAPONS:
+	case TF_CLASS_JESUSCHRIST:
+	case TF_CLASS_TEAPOTBATTLER:
 		flAmount = 8;
 		break;
 	}

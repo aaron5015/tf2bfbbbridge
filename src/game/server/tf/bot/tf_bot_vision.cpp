@@ -252,6 +252,20 @@ bool CTFBotVision::IsIgnored( CBaseEntity *subject ) const
 				return true;
 			}
 			break;
+
+		case TF_CLASS_JESUSCHRIST:
+			if ( me->IsBehaviorFlagSet( TFBOT_IGNORE_ENEMY_JESUSCHRISTS ) )
+			{
+				return true;
+			}
+			break;
+
+		case TF_CLASS_TEAPOTBATTLER:
+			if ( me->IsBehaviorFlagSet( TFBOT_IGNORE_ENEMY_TEAPOTBATTLERS ) )
+			{
+				return true;
+			}
+			break;
 		}
 
 

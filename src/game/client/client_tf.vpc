@@ -553,6 +553,12 @@ $Project "Client (TF)"
 				}
 			}
 
+			$Folder "TF2Bridge"
+			{
+				$File "$SRCDIR\game\shared\tf2bridge\bfbb_collision.cpp"
+	    		$File "$SRCDIR\game\shared\tf2bridge\bfbb_collision.h"
+			}
+
 			$Folder	"Weapon"
 			{
 				$File	"tf\c_tf_projectile_arrow.cpp"
@@ -671,6 +677,10 @@ $Project "Client (TF)"
 				$File	"$SRCDIR\game\shared\tf\tf_weapon_mechanical_arm.h"
 				$File	"$SRCDIR\game\shared\tf\tf_weapon_rocketpack.cpp"
 				$File	"$SRCDIR\game\shared\tf\tf_weapon_rocketpack.h"
+				$File	"$SRCDIR\game\shared\tf\sdk_weapon_chargemelee.cpp"
+				$File	"$SRCDIR\game\shared\tf\sdk_weapon_chargemelee.h"
+				$File	"$SRCDIR\game\shared\tf\aaron_weapon_teapotmug.cpp"
+				$File	"$SRCDIR\game\shared\tf\aaron_weapon_teapotmug.h"
 			}
 
 			$Folder	"Economy"

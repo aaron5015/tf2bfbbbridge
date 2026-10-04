@@ -22,6 +22,8 @@ BEGIN_DATADESC( CTFBotRoster )
 	DEFINE_KEYFIELD( m_bAllowedClasses[TF_CLASS_PYRO],			FIELD_BOOLEAN,	"allowPyro" ),
 	DEFINE_KEYFIELD( m_bAllowedClasses[TF_CLASS_SPY],			FIELD_BOOLEAN,	"allowSpy" ),
 	DEFINE_KEYFIELD( m_bAllowedClasses[TF_CLASS_ENGINEER],		FIELD_BOOLEAN,	"allowEngineer" ),
+	DEFINE_KEYFIELD( m_bAllowedClasses[TF_CLASS_JESUSCHRIST],	FIELD_BOOLEAN,	"allowJesusChrist" ),
+	DEFINE_KEYFIELD( m_bAllowedClasses[TF_CLASS_TEAPOTBATTLER],	FIELD_BOOLEAN,	"allowTeapotBattler" ),
 
 	DEFINE_INPUTFUNC( FIELD_STRING, "SetTeam", InputSetTeam ),
 	DEFINE_INPUTFUNC( FIELD_BOOLEAN, "SetAllowScout", InputSetAllowScout ),
@@ -33,6 +35,8 @@ BEGIN_DATADESC( CTFBotRoster )
 	DEFINE_INPUTFUNC( FIELD_BOOLEAN, "SetAllowPyro", InputSetAllowPyro ),
 	DEFINE_INPUTFUNC( FIELD_BOOLEAN, "SetAllowSpy", InputSetAllowSpy ),
 	DEFINE_INPUTFUNC( FIELD_BOOLEAN, "SetAllowEngineer", InputSetAllowEngineer ),
+	DEFINE_INPUTFUNC( FIELD_BOOLEAN, "SetAllowJesusChrist", InputSetAllowJesusChrist ),
+	DEFINE_INPUTFUNC( FIELD_BOOLEAN, "SetAllowTeapotBattler", InputSetAllowTeapotBattler ),
 
 END_DATADESC()
 
@@ -90,6 +94,16 @@ void CTFBotRoster::InputSetAllowSpy( inputdata_t &inputdata )
 void CTFBotRoster::InputSetAllowEngineer( inputdata_t &inputdata )
 {
 	m_bAllowedClasses[TF_CLASS_ENGINEER] = inputdata.value.Bool();
+}
+
+void CTFBotRoster::InputSetAllowJesusChrist( inputdata_t &inputdata )
+{
+	m_bAllowedClasses[TF_CLASS_JESUSCHRIST] = inputdata.value.Bool();
+}
+
+void CTFBotRoster::InputSetAllowTeapotBattler( inputdata_t &inputdata )
+{
+	m_bAllowedClasses[TF_CLASS_TEAPOTBATTLER] = inputdata.value.Bool();
 }
 
 //------------------------------------------------------------------------------
