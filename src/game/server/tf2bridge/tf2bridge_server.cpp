@@ -51,6 +51,17 @@ extern ConVar bfbb_scene;
 static ConVar bfbb_coll_draw("bfbb_coll_draw", "0", FCVAR_NONE,
     "Draw BFBB collision triangles near the host (green up, red down, yellow walls)");
 static ConVar bfbb_bridge_debug("bfbb_bridge_debug", "0", FCVAR_NONE, "Print bridge traffic");
+void TF2Bridge_ApplyRocketImpact(int entIndex, const float origin[3])
+{
+    CBaseEntity* entity = UTIL_EntityByIndex(entIndex);
+    CTFBaseRocket* rocket = dynamic_cast<CTFBaseRocket*>(entity);
+    if (rocket == NULL)
+        return;
+
+    rocket->SetAbsOrigin(Vector(origin[0], origin[1], origin[2]));
+    rocket->Destroy(false, false);
+}
+
 static ConVar bfbb_rocket_debug_lifetime("bfbb_rocket_debug_lifetime", "3.0", FCVAR_NONE,
     "Seconds to keep BFBB rocket impact/radius diagnostics visible; 0 disables rocket diagnostics");
 
