@@ -138,11 +138,29 @@ bool TF2Bridge_NetRecvState(BridgeStatePacket* out)
     bool got = false;
     for (;;)
     {
-        BridgeStatePacket p;
-        int n = (int)recv(g_sock, (char*)&p, sizeof(p), 0);
+        uint8_t buf[sizeof(BridgeStatePacket)] = {};
+        int n = (int)recv(g_sock, (char*)buf, sizeof(buf), 0);
         if (n < 0)
             break;
-        if (n != (int)sizeof(p) || p.magic != BRIDGE_MAGIC_STATE)
+
+        if (n == (int)sizeof(BridgeRocketImpactPacket))
+        {
+            BridgeRocketImpactPacket impact;
+            memcpy(&impact, buf, sizeof(impact));
+            if (impact.magic == BRIDGE_MAGIC_ROCKET_IMPACT)
+            {
+                TF2Bridge_ApplyRocketImpact((int)impact.entIndex,
+                                            (const float[3]){ impact.x, impact.y, impact.z });
+                continue;
+            }
+        }
+
+        if (n != (int)sizeof(BridgeStatePacket))
+            continue;
+
+        BridgeStatePacket p;
+        memcpy(&p, buf, sizeof(p));
+        if (p.magic != BRIDGE_MAGIC_STATE)
             continue;
         if (g_haveSeq && (int32_t)(p.seq - g_lastSeq) <= 0)
             continue; // reordered or duplicate
