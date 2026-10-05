@@ -19,6 +19,7 @@ bool TF2Bridge_NetRecvState(BridgeStatePacket* out);
 void TF2Bridge_NotifyWeaponFired();
 void TF2Bridge_NotifyHitscanRay(const float origin[3], const float dir[3], float range);
 void TF2Bridge_NotifyRocket(int entIndex, const float origin[3], float radius);
+void TF2Bridge_ApplyRocketImpact(int entIndex, const float origin[3]);
 void TF2Bridge_NetSendIntent(BridgeIntentPacket* pkt);
 
 #endif
