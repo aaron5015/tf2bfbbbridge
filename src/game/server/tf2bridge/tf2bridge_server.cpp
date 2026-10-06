@@ -241,7 +241,8 @@ public:
                     TF2Bridge_NotifyRocket(
                         baseRocket->entindex(),
                         &pos.x,
-                        baseRocket->GetRadius());
+                        baseRocket->GetRadius(),
+                        baseRocket->GetDamage());
                 }
             }
 
