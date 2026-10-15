@@ -10,6 +10,6 @@
 	}
 	"bfbbtest"
 	{
-		"viewed"		"5"
+		"viewed"		"23"
 	}
 }

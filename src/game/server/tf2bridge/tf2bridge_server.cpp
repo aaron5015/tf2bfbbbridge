@@ -33,6 +33,7 @@
 #include "player.h"
 #include "tf_player.h"
 #include "tf_weaponbase.h"
+#include "tf_weaponbase_gun.h"
 #include "tf_projectile_rocket.h"
 #include "usercmd.h"
 
@@ -63,7 +64,7 @@ void TF2Bridge_ApplyRocketImpact(int entIndex, const float origin[3])
 }
 
 static ConVar bfbb_rocket_debug_lifetime("bfbb_rocket_debug_lifetime", "3.0", FCVAR_NONE,
-    "Seconds to keep BFBB rocket impact/radius diagnostics visible; 0 disables rocket diagnostics");
+    "Seconds to keep BFBB rocket impact/radius markers visible; 0 hides them (rockets still work)");
 
 // Source's default run speed for the usercmd axes (cl_forwardspeed / cl_sidespeed).
 static const float kCmdAxisMax = 450.0f;
@@ -216,6 +217,9 @@ public:
             CTFWeaponBase* activeWeapon = pPlayer->GetActiveTFWeapon();
             if (activeWeapon != NULL && activeWeapon->IsMeleeWeapon())
                 in.weaponflags |= BRIDGE_WEAPON_MELEE;
+            CTFWeaponBaseGun* activeGun = dynamic_cast<CTFWeaponBaseGun*>(activeWeapon);
+            if (activeGun != NULL && activeGun->GetWeaponProjectileType() == TF_PROJECTILE_ROCKET)
+                in.weaponflags |= BRIDGE_WEAPON_ROCKET;
 
             const Vector origin = pPlayer->GetAbsOrigin();
             const Vector vel = pPlayer->GetAbsVelocity();
@@ -224,11 +228,12 @@ public:
             in.vx = vel.x;    in.vy = vel.y;    in.vz = vel.z;
             in.ex = eye.x;    in.ey = eye.y;    in.ez = eye.z;
 
-            // Diagnostic-only rocket bridge. We send the actual TF2 rocket
-            // positions and GetRadius() value; BFBB performs the world sweep.
-            // This deliberately does not alter TF2 projectile physics or damage.
+            // Rocket bridge. We send the actual TF2 rocket positions, GetRadius()
+            // and GetDamage(); BFBB sweeps them against the level, decides where they
+            // explode and who is hurt. This does not alter TF2 projectile physics.
+            // bfbb_rocket_debug_lifetime now only controls how long BFBB's markers
+            // stay up (0 = none); rockets are reported either way.
             in.rocketDebugLifetime = MAX(0.0f, bfbb_rocket_debug_lifetime.GetFloat());
-            if (in.rocketDebugLifetime > 0.0f)
             {
                 CBaseEntity* rocket = NULL;
                 while ((rocket = gEntList.FindEntityByClassname(rocket, "tf_projectile_rocket")) != NULL)
