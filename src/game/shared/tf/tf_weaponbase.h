@@ -368,6 +368,13 @@ class CTFWeaponBase : public CBaseCombatWeapon, public IHasOwner, public IHasGen
 	virtual void GetProjectileFireSetup( CTFPlayer *pPlayer, Vector vecOffset, Vector *vecSrc, QAngle *angForward, bool bHitTeammates = true, float flEndDist = 2000.f );
 	virtual QAngle GetSpreadAngles( void );
 	float GetLastPrimaryAttackTime( void ) const { return m_flLastPrimaryAttackTime; }
+	// BFBB bridge tuning; item attributes override this default.
+	float GetBridgeKnockbackMultiplier( void )
+	{
+		float flMultiplier = 1.5f;
+		CALL_ATTRIB_HOOK_FLOAT( flMultiplier, bridge_knockback_multiplier );
+		return clamp( flMultiplier, 0.1f, 5.0f );
+	}
 	virtual bool CanPerformSecondaryAttack() const OVERRIDE;
 	virtual bool IsFiring( void ) const { return false; }
 	virtual bool AreRandomCritsEnabled( void );
