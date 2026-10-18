@@ -63,6 +63,7 @@ public:
 	virtual void	DoMeleeDamage( CBaseEntity* ent, trace_t& trace, float flDamageMod );
 
 	virtual float	GetMeleeDamage( CBaseEntity *pTarget, int* piDamageType, int* piCustomDamage );
+	virtual float	GetBridgeDamageEstimate( void ) OVERRIDE;
 
 #ifndef CLIENT_DLL
 	virtual float	GetForceScale( void );

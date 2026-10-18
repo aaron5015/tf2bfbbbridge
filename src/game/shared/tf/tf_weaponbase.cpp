@@ -288,6 +288,9 @@ float CTFWeaponBase::GetBridgeDamageEstimate( void )
 {
 	float flDamage = (float)GetTFWpnData().GetWeaponData(TF_WEAPON_PRIMARY_MODE).m_nDamage;
 	CALL_ATTRIB_HOOK_FLOAT( flDamage, mult_dmg );
+	// Estimate for bridge overflow tuning, not a replacement for Source damage.
+	if ( IsCurrentAttackACrit() )
+		flDamage *= 3.0f;
 	return MAX(0.0f, flDamage);
 }
 

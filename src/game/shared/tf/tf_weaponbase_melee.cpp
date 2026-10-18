@@ -1037,6 +1037,15 @@ float CTFWeaponBaseMelee::GetMeleeDamage( CBaseEntity *pTarget, int* piDamageTyp
 	return flDamage;
 }
 
+float CTFWeaponBaseMelee::GetBridgeDamageEstimate( void )
+{
+	// Reuse melee's own damage attributes and health-dependent modifiers.
+	float flDamage = GetMeleeDamage( NULL, NULL, NULL );
+	if ( IsCurrentAttackACrit() )
+		flDamage *= 3.0f;
+	return MAX( 0.0f, flDamage );
+}
+
 void CTFWeaponBaseMelee::OnEntityHit( CBaseEntity *pEntity, CTakeDamageInfo *info )
 {
 }
