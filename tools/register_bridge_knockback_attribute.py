@@ -48,20 +48,50 @@ def register(path: Path) -> bool:
     if start < 0:
         raise RuntimeError(f"Could not locate top-level attributes block in {path}")
 
-    section = text[start:]
+    # Find the matching brace for the attributes block. Scanning the entire
+    # remainder of items_game.txt would also see item-definition IDs, which
+    # are a different namespace and must not affect the attribute ID.
+    open_brace = text.find("{", start)
+    if open_brace < 0:
+        raise RuntimeError(f"Could not find attributes block opener in {path}")
+
+    depth = 0
+    in_string = False
+    escaped = False
+    block_end = -1
+    for index in range(open_brace, len(text)):
+        char = text[index]
+        if in_string:
+            if escaped:
+                escaped = False
+            elif char == "\\\\":
+                escaped = True
+            elif char == '"':
+                in_string = False
+            continue
+        if char == '"':
+            in_string = True
+        elif char == "{":
+            depth += 1
+        elif char == "}":
+            depth -= 1
+            if depth == 0:
+                block_end = index
+                break
+
+    if block_end < 0:
+        raise RuntimeError(f"Could not find attributes block closer in {path}")
+
+    section = text[start:block_end + 1]
     ids = [int(match.group(1)) for match in re.finditer(
         r'^\s*"(\d+)"\s*\n\s*\{', section, re.MULTILINE
     )]
     if not ids:
         raise RuntimeError(f"Could not find numeric attribute IDs in {path}")
 
-    closing = "\n\t}\n}"
-    if not text.endswith(closing):
-        raise RuntimeError(f"Unexpected closing structure in {path}; left unchanged")
-
     attribute_id = max(ids) + 1
     entry = ENTRY_TEMPLATE.format(id=attribute_id)
-    updated = text[:-len(closing)] + entry + closing
+    updated = text[:block_end] + entry + text[block_end:]
     path.write_text(updated, encoding="utf-8", newline="")
     print(f"UPDATED: {path} (attribute ID {attribute_id})")
     return True

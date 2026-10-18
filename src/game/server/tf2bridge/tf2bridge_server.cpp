@@ -69,6 +69,36 @@ static ConVar bfbb_rocket_debug_lifetime("bfbb_rocket_debug_lifetime", "3.0", FC
 // Source's default run speed for the usercmd axes (cl_forwardspeed / cl_sidespeed).
 static const float kCmdAxisMax = 450.0f;
 
+ // Cache the launcher's multiplier per projectile so switching weapons in flight
+ // does not retroactively change a rocket's impact tuning.
+static int sRocketMultiplierEnt[BRIDGE_MAX_ROCKETS] = {};
+static float sRocketMultiplierValue[BRIDGE_MAX_ROCKETS] = {};
+static bool sRocketMultiplierSeen[BRIDGE_MAX_ROCKETS] = {};
+
+static float TF2Bridge_GetRocketMultiplier(int entIndex, float activeMultiplier)
+{
+    for (int i = 0; i < BRIDGE_MAX_ROCKETS; ++i)
+    {
+        if (sRocketMultiplierEnt[i] == entIndex)
+        {
+            sRocketMultiplierSeen[i] = true;
+            return sRocketMultiplierValue[i];
+        }
+    }
+    for (int i = 0; i < BRIDGE_MAX_ROCKETS; ++i)
+    {
+        if (sRocketMultiplierEnt[i] == 0)
+        {
+            sRocketMultiplierEnt[i] = entIndex;
+            sRocketMultiplierValue[i] = activeMultiplier;
+            sRocketMultiplierSeen[i] = true;
+            return activeMultiplier;
+        }
+    }
+    return activeMultiplier;
+}
+
+
 // BFBB (right-handed, +X toward screen-left, +Y up, +Z forward) to Source
 // (x forward, y left, z up): a pure rotation, no mirroring. See iTF2BridgeProto.h.
 static Vector BfbbToSource(float bx, float by, float bz, float scale)
@@ -236,6 +266,7 @@ public:
             // bfbb_rocket_debug_lifetime now only controls how long BFBB's markers
             // stay up (0 = none); rockets are reported either way.
             in.rocketDebugLifetime = MAX(0.0f, bfbb_rocket_debug_lifetime.GetFloat());
+            memset(sRocketMultiplierSeen, 0, sizeof(sRocketMultiplierSeen));
             {
                 CBaseEntity* rocket = NULL;
                 while ((rocket = gEntList.FindEntityByClassname(rocket, "tf_projectile_rocket")) != NULL)
@@ -245,11 +276,23 @@ public:
                         continue;
 
                     const Vector pos = baseRocket->GetAbsOrigin();
+                    const float rocketMultiplier = TF2Bridge_GetRocketMultiplier(
+                        baseRocket->entindex(),
+                        activeWeapon != NULL ? activeWeapon->GetBridgeKnockbackMultiplier() : 1.5f);
                     TF2Bridge_NotifyRocket(
                         baseRocket->entindex(),
                         &pos.x,
                         baseRocket->GetRadius(),
-                        baseRocket->GetDamage());
+                        baseRocket->GetDamage(),
+                        rocketMultiplier);
+                }
+            }
+            for (int i = 0; i < BRIDGE_MAX_ROCKETS; ++i)
+            {
+                if (sRocketMultiplierEnt[i] != 0 && !sRocketMultiplierSeen[i])
+                {
+                    sRocketMultiplierEnt[i] = 0;
+                    sRocketMultiplierValue[i] = 0.0f;
                 }
             }
 
