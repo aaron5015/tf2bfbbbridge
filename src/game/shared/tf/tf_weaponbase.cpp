@@ -284,6 +284,13 @@ ConVar tf_weapon_criticals( "tf_weapon_criticals", "1", FCVAR_REPLICATED | FCVAR
 // -----------------------------------------------------------------------------
 // Purpose: Constructor.
 // -----------------------------------------------------------------------------
+float CTFWeaponBase::GetBridgeDamageEstimate( void )
+{
+	float flDamage = (float)GetTFWpnData().GetWeaponData(TF_WEAPON_PRIMARY_MODE).m_nDamage;
+	CALL_ATTRIB_HOOK_FLOAT( flDamage, mult_dmg );
+	return MAX(0.0f, flDamage);
+}
+
 CTFWeaponBase::CTFWeaponBase()
 {
 	SetPredictionEligible( true );

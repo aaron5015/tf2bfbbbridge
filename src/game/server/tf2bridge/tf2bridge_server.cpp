@@ -216,7 +216,7 @@ public:
             in.tfhealth = pPlayer->GetHealth();
             CTFWeaponBase* activeWeapon = pPlayer->GetActiveTFWeapon();
             in.knockbackMultiplier = activeWeapon != NULL ? activeWeapon->GetBridgeKnockbackMultiplier() : 1.5f;
-            in.weaponDamage = activeWeapon != NULL ? (float)activeWeapon->GetTFWpnData().GetWeaponData(TF_WEAPON_PRIMARY_MODE).m_nDamage : 0.0f;
+            in.weaponDamage = activeWeapon != NULL ? activeWeapon->GetBridgeDamageEstimate() : 0.0f;
             if (activeWeapon != NULL && activeWeapon->IsMeleeWeapon())
                 in.weaponflags |= BRIDGE_WEAPON_MELEE;
             CTFWeaponBaseGun* activeGun = dynamic_cast<CTFWeaponBaseGun*>(activeWeapon);

@@ -369,6 +369,7 @@ class CTFWeaponBase : public CBaseCombatWeapon, public IHasOwner, public IHasGen
 	virtual QAngle GetSpreadAngles( void );
 	float GetLastPrimaryAttackTime( void ) const { return m_flLastPrimaryAttackTime; }
 	// BFBB bridge tuning; item attributes override this default.
+	float GetBridgeDamageEstimate( void );
 	float GetBridgeKnockbackMultiplier( void )
 	{
 		float flMultiplier = 1.5f;
