@@ -249,7 +249,7 @@ CON_COMMAND_F( tf2bridge_trace_dummy, "Report TF2 bridge dummy collision state a
 	const Vector vecMins = pDummy->CollisionProp()->OBBMins();
 	const Vector vecMaxs = pDummy->CollisionProp()->OBBMaxs();
 	const Vector vecCenter = pDummy->WorldSpaceCenter();
-	Msg( "[TF2BridgeTrace] dummy=%s origin=(%.1f %.1f %.1f) center=(%.1f %.1f %.1f) mins=(%.1f %.1f %.1f) maxs=(%.1f %.1f %.1f) solid=%d solidFlags=0x%x collisionGroup=%d contents=0x%x health=%d\n",
+	Msg( "[TF2BridgeTrace] dummy=%s origin=(%.1f %.1f %.1f) center=(%.1f %.1f %.1f) mins=(%.1f %.1f %.1f) maxs=(%.1f %.1f %.1f) solid=%d solidFlags=0x%x collisionGroup=%d health=%d\n",
 		pDummy->GetClassname(),
 		vecOrigin.x, vecOrigin.y, vecOrigin.z,
 		vecCenter.x, vecCenter.y, vecCenter.z,
