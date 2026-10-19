@@ -344,6 +344,40 @@ CON_COMMAND_F( tf2bridge_trace_dummy, "Report TF2 bridge dummy collision state a
 		trCrossHull.m_pEnt ? trCrossHull.m_pEnt->GetClassname() : "<none>", trCrossHull.DidHitWorld() ? 1 : 0,
 		trCrossHull.endpos.x, trCrossHull.endpos.y, trCrossHull.endpos.z );
 
+	// Create a temporary prop_dynamic control with the same model and an explicit
+	// bbox beside the dummy. This compares the dummy's trace behavior against a
+	// separate engine entity class using the same trace function and mask.
+	CBaseEntity *pControl = CreateEntityByName( "prop_dynamic" );
+	if ( pControl )
+	{
+		pControl->KeyValue( "model", "models/props_training/target_engineer.mdl" );
+		pControl->SetAbsOrigin( vecOrigin + Vector( 96, 0, 0 ) );
+		pControl->SetAbsAngles( pDummy->GetAbsAngles() );
+		DispatchSpawn( pControl );
+		pControl->SetMoveType( MOVETYPE_NONE );
+		pControl->SetSolid( SOLID_BBOX );
+		pControl->SetCollisionGroup( COLLISION_GROUP_NONE );
+		pControl->SetCollisionBounds( Vector( -16, -16, 0 ), Vector( 16, 16, 72 ) );
+		pControl->CollisionProp()->UpdatePartition();
+
+		const Vector vecControlOrigin = pControl->GetAbsOrigin();
+		const Vector vecControlStart = vecControlOrigin + Vector( -64, 0, 36 );
+		const Vector vecControlEnd = vecControlOrigin + Vector( 64, 0, 36 );
+		trace_t trControl;
+		UTIL_TraceLine( vecControlStart, vecControlEnd, MASK_SHOT, pPlayer, COLLISION_GROUP_NONE, &trControl );
+		Msg( "[TF2BridgeTrace] control=%s origin=(%.1f %.1f %.1f) solid=%d flags=0x%x group=%d partition=%u isSolid=%d traceFraction=%.4f hit=%s hitpos=(%.1f %.1f %.1f)\\n",
+			pControl->GetClassname(), vecControlOrigin.x, vecControlOrigin.y, vecControlOrigin.z,
+			(int)pControl->GetSolid(), pControl->GetSolidFlags(), pControl->GetCollisionGroup(),
+			(unsigned int)pControl->CollisionProp()->GetPartitionHandle(), pControl->CollisionProp()->IsSolid() ? 1 : 0,
+			trControl.fraction, trControl.m_pEnt ? trControl.m_pEnt->GetClassname() : "<none>",
+			trControl.endpos.x, trControl.endpos.y, trControl.endpos.z );
+		UTIL_Remove( pControl );
+	}
+	else
+	{
+		Msg( "[TF2BridgeTrace] control prop_dynamic creation failed\\n" );
+	}
+
 	// Force the collision property to refresh its partition entry, then retry.
 	// If this changes the result, the entity's solid-partition registration may
 	// have been stale or incomplete despite its presence in entity queries.
