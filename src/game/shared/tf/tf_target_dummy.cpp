@@ -313,6 +313,32 @@ CON_COMMAND_F( tf2bridge_trace_dummy, "Report TF2 bridge dummy collision state a
 		trDirectBroad.fraction, trDirectBroad.startsolid ? 1 : 0, trDirectBroad.allsolid ? 1 : 0,
 		trDirectBroad.m_pEnt ? trDirectBroad.m_pEnt->GetClassname() : "<none>", trDirectBroad.DidHitWorld() ? 1 : 0,
 		trDirectBroad.endpos.x, trDirectBroad.endpos.y, trDirectBroad.endpos.z );
+	// Cross the dummy's bbox from outside to outside. The direct traces above
+	// ended at WorldSpaceCenter(), so this explicitly crosses its collision boundary.
+	const Vector vecCrossStart = vecOrigin + Vector( -64, 0, 36 );
+	const Vector vecCrossEnd = vecOrigin + Vector( 64, 0, 36 );
+	trace_t trCrossShot;
+	UTIL_TraceLine( vecCrossStart, vecCrossEnd, MASK_SHOT, pPlayer, COLLISION_GROUP_NONE, &trCrossShot );
+	Msg( "[TF2BridgeTrace] crossX MASK_SHOT fraction=%.4f startsolid=%d allsolid=%d hit=%s hitWorld=%d hitpos=(%.1f %.1f %.1f)\\n",
+		trCrossShot.fraction, trCrossShot.startsolid ? 1 : 0, trCrossShot.allsolid ? 1 : 0,
+		trCrossShot.m_pEnt ? trCrossShot.m_pEnt->GetClassname() : "<none>", trCrossShot.DidHitWorld() ? 1 : 0,
+		trCrossShot.endpos.x, trCrossShot.endpos.y, trCrossShot.endpos.z );
+
+	trace_t trCrossBroad;
+	UTIL_TraceLine( vecCrossStart, vecCrossEnd, MASK_ALL, pPlayer, COLLISION_GROUP_NONE, &trCrossBroad );
+	Msg( "[TF2BridgeTrace] crossX MASK_ALL fraction=%.4f startsolid=%d allsolid=%d hit=%s hitWorld=%d hitpos=(%.1f %.1f %.1f)\\n",
+		trCrossBroad.fraction, trCrossBroad.startsolid ? 1 : 0, trCrossBroad.allsolid ? 1 : 0,
+		trCrossBroad.m_pEnt ? trCrossBroad.m_pEnt->GetClassname() : "<none>", trCrossBroad.DidHitWorld() ? 1 : 0,
+		trCrossBroad.endpos.x, trCrossBroad.endpos.y, trCrossBroad.endpos.z );
+
+	trace_t trCrossHull;
+	UTIL_TraceHull( vecCrossStart, vecCrossEnd, Vector( -2, -2, -2 ), Vector( 2, 2, 2 ),
+		MASK_SHOT, pPlayer, COLLISION_GROUP_NONE, &trCrossHull );
+	Msg( "[TF2BridgeTrace] crossX HULL MASK_SHOT fraction=%.4f startsolid=%d allsolid=%d hit=%s hitWorld=%d hitpos=(%.1f %.1f %.1f)\\n",
+		trCrossHull.fraction, trCrossHull.startsolid ? 1 : 0, trCrossHull.allsolid ? 1 : 0,
+		trCrossHull.m_pEnt ? trCrossHull.m_pEnt->GetClassname() : "<none>", trCrossHull.DidHitWorld() ? 1 : 0,
+		trCrossHull.endpos.x, trCrossHull.endpos.y, trCrossHull.endpos.z );
+
 }
 
 CON_COMMAND_F( tf2bridge_spawn_dummy, "Spawn a persistent TF2 bridge damage-test dummy in front of the issuing player.", FCVAR_CHEAT )
