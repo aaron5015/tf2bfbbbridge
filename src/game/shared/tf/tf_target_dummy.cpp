@@ -258,6 +258,30 @@ CON_COMMAND_F( tf2bridge_trace_dummy, "Report TF2 bridge dummy collision state a
 		(int)pDummy->GetSolid(), pDummy->GetSolidFlags(), pDummy->GetCollisionGroup(),
 		pDummy->GetHealth() );
 
+	CBaseEntity *pNearby[128];
+	const Vector vecBoxMins = vecOrigin - Vector( 32, 32, 32 );
+	const Vector vecBoxMaxs = vecOrigin + Vector( 32, 32, 80 );
+	const int nNearby = UTIL_EntitiesInBox( pNearby, ARRAYSIZE( pNearby ), vecBoxMins, vecBoxMaxs, 0 );
+	bool bFoundInBox = false;
+	for ( int i = 0; i < nNearby; ++i )
+	{
+		if ( pNearby[i] == pDummy )
+			bFoundInBox = true;
+	}
+	Msg( "[TF2BridgeTrace] nearby box entities=%d dummyFound=%d boxMins=(%.1f %.1f %.1f) boxMaxs=(%.1f %.1f %.1f)\n",
+		nNearby, bFoundInBox ? 1 : 0,
+		vecBoxMins.x, vecBoxMins.y, vecBoxMins.z,
+		vecBoxMaxs.x, vecBoxMaxs.y, vecBoxMaxs.z );
+	for ( int i = 0; i < nNearby && i < 12; ++i )
+	{
+		Msg( "[TF2BridgeTrace] nearby[%d]=%s origin=(%.1f %.1f %.1f) solid=%d\n",
+			i, pNearby[i] ? pNearby[i]->GetClassname() : "<null>",
+			pNearby[i] ? pNearby[i]->GetAbsOrigin().x : 0.0f,
+			pNearby[i] ? pNearby[i]->GetAbsOrigin().y : 0.0f,
+			pNearby[i] ? pNearby[i]->GetAbsOrigin().z : 0.0f,
+			pNearby[i] ? (int)pNearby[i]->GetSolid() : -1 );
+	}
+
 	Vector vecForward;
 	AngleVectors( pPlayer->EyeAngles(), &vecForward );
 	const Vector vecStart = pPlayer->EyePosition();
