@@ -93,6 +93,7 @@ void CTFTargetDummy::Spawn()
 	SetCollisionGroup( COLLISION_GROUP_NONE );
 
 	//SetSolidFlags( FSOLID_TRIGGER );
+	SetSolidFlags( FSOLID_CUSTOMRAYTEST | FSOLID_CUSTOMBOXTEST );
 
 	m_takedamage = DAMAGE_YES;
 	SetHealth( tf_target_dummy_health.GetInt() );
