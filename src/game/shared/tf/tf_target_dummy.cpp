@@ -249,7 +249,7 @@ CON_COMMAND_F( tf2bridge_trace_dummy, "Report TF2 bridge dummy collision state a
 	const Vector vecMins = pDummy->CollisionProp()->OBBMins();
 	const Vector vecMaxs = pDummy->CollisionProp()->OBBMaxs();
 	const Vector vecCenter = pDummy->WorldSpaceCenter();
-	Msg( "[TF2BridgeTrace] dummy=%s origin=(%.1f %.1f %.1f) center=(%.1f %.1f %.1f) mins=(%.1f %.1f %.1f) maxs=(%.1f %.1f %.1f) solid=%d solidFlags=0x%x collisionGroup=%d health=%d\\n",
+	Msg( "[TF2BridgeTrace] dummy=%s origin=(%.1f %.1f %.1f) center=(%.1f %.1f %.1f) mins=(%.1f %.1f %.1f) maxs=(%.1f %.1f %.1f) solid=%d solidFlags=0x%x collisionGroup=%d health=%d\n",
 		pDummy->GetClassname(),
 		vecOrigin.x, vecOrigin.y, vecOrigin.z,
 		vecCenter.x, vecCenter.y, vecCenter.z,
@@ -264,28 +264,28 @@ CON_COMMAND_F( tf2bridge_trace_dummy, "Report TF2 bridge dummy collision state a
 	const Vector vecEnd = vecStart + vecForward * 4096.0f;
 	trace_t trViewShot;
 	UTIL_TraceLine( vecStart, vecEnd, MASK_SHOT, pPlayer, COLLISION_GROUP_NONE, &trViewShot );
-	Msg( "[TF2BridgeTrace] view MASK_SHOT fraction=%.4f startsolid=%d allsolid=%d hit=%s hitWorld=%d hitpos=(%.1f %.1f %.1f)\\n",
+	Msg( "[TF2BridgeTrace] view MASK_SHOT fraction=%.4f startsolid=%d allsolid=%d hit=%s hitWorld=%d hitpos=(%.1f %.1f %.1f)\n",
 		trViewShot.fraction, trViewShot.startsolid ? 1 : 0, trViewShot.allsolid ? 1 : 0,
 		trViewShot.m_pEnt ? trViewShot.m_pEnt->GetClassname() : "<none>", trViewShot.DidHitWorld() ? 1 : 0,
 		trViewShot.endpos.x, trViewShot.endpos.y, trViewShot.endpos.z );
 
 	trace_t trViewBroad;
 	UTIL_TraceLine( vecStart, vecEnd, MASK_ALL, pPlayer, COLLISION_GROUP_NONE, &trViewBroad );
-	Msg( "[TF2BridgeTrace] view MASK_ALL fraction=%.4f startsolid=%d allsolid=%d hit=%s hitWorld=%d hitpos=(%.1f %.1f %.1f)\\n",
+	Msg( "[TF2BridgeTrace] view MASK_ALL fraction=%.4f startsolid=%d allsolid=%d hit=%s hitWorld=%d hitpos=(%.1f %.1f %.1f)\n",
 		trViewBroad.fraction, trViewBroad.startsolid ? 1 : 0, trViewBroad.allsolid ? 1 : 0,
 		trViewBroad.m_pEnt ? trViewBroad.m_pEnt->GetClassname() : "<none>", trViewBroad.DidHitWorld() ? 1 : 0,
 		trViewBroad.endpos.x, trViewBroad.endpos.y, trViewBroad.endpos.z );
 
 	trace_t trDirectShot;
 	UTIL_TraceLine( vecStart, vecCenter, MASK_SHOT, pPlayer, COLLISION_GROUP_NONE, &trDirectShot );
-	Msg( "[TF2BridgeTrace] direct MASK_SHOT fraction=%.4f startsolid=%d allsolid=%d hit=%s hitWorld=%d hitpos=(%.1f %.1f %.1f)\\n",
+	Msg( "[TF2BridgeTrace] direct MASK_SHOT fraction=%.4f startsolid=%d allsolid=%d hit=%s hitWorld=%d hitpos=(%.1f %.1f %.1f)\n",
 		trDirectShot.fraction, trDirectShot.startsolid ? 1 : 0, trDirectShot.allsolid ? 1 : 0,
 		trDirectShot.m_pEnt ? trDirectShot.m_pEnt->GetClassname() : "<none>", trDirectShot.DidHitWorld() ? 1 : 0,
 		trDirectShot.endpos.x, trDirectShot.endpos.y, trDirectShot.endpos.z );
 
 	trace_t trDirectBroad;
 	UTIL_TraceLine( vecStart, vecCenter, MASK_ALL, pPlayer, COLLISION_GROUP_NONE, &trDirectBroad );
-	Msg( "[TF2BridgeTrace] direct MASK_ALL fraction=%.4f startsolid=%d allsolid=%d hit=%s hitWorld=%d hitpos=(%.1f %.1f %.1f)\\n",
+	Msg( "[TF2BridgeTrace] direct MASK_ALL fraction=%.4f startsolid=%d allsolid=%d hit=%s hitWorld=%d hitpos=(%.1f %.1f %.1f)\n",
 		trDirectBroad.fraction, trDirectBroad.startsolid ? 1 : 0, trDirectBroad.allsolid ? 1 : 0,
 		trDirectBroad.m_pEnt ? trDirectBroad.m_pEnt->GetClassname() : "<none>", trDirectBroad.DidHitWorld() ? 1 : 0,
 		trDirectBroad.endpos.x, trDirectBroad.endpos.y, trDirectBroad.endpos.z );
