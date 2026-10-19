@@ -86,8 +86,11 @@ void CTFTargetDummy::Spawn()
 	BaseClass::Spawn();
 
 	SetMoveType( MOVETYPE_NONE );
-	SetSolid( SOLID_VPHYSICS );
-	SetCollisionGroup( TFCOLLISION_GROUP_OBJECT );
+	// Use explicit bbox collision: the training target models are not guaranteed
+	// to provide a usable VPhysics collision mesh for weapon traces.
+	SetSolid( SOLID_BBOX );
+	SetCollisionBounds( Vector( -16, -16, 0 ), Vector( 16, 16, 72 ) );
+	SetCollisionGroup( COLLISION_GROUP_NONE );
 
 	//SetSolidFlags( FSOLID_TRIGGER );
 
@@ -114,7 +117,7 @@ int CTFTargetDummy::OnTakeDamage( const CTakeDamageInfo &info )
 
 	CBaseEntity *pAttacker = info.GetAttacker();
 	CBaseEntity *pInflictor = info.GetInflictor();
-	Msg( "[TF2BridgeDummy] hit target=%s attacker=%s inflictor=%s damage=%.2f base=%.2f type=0x%08x pos=(%.1f %.1f %.1f) healthBefore=%d\n",
+	Msg( "[TF2BridgeDummy] hit target=%s attacker=%s inflictor=%s damage=%.2f base=%.2f type=0x%08x pos=(%.1f %.1f %.1f) healthBefore=%d\\n",
 		GetClassname(),
 		pAttacker ? pAttacker->GetClassname() : "<null>",
 		pInflictor ? pInflictor->GetClassname() : "<null>",
@@ -129,7 +132,7 @@ int CTFTargetDummy::OnTakeDamage( const CTakeDamageInfo &info )
 
 	if ( m_iHealth <= 0 )
 	{
-		Msg( "[TF2BridgeDummy] killed by damage event\n" );
+		Msg( "[TF2BridgeDummy] killed by damage event\\n" );
 		Destroy();
 	}
 
@@ -237,7 +240,7 @@ CON_COMMAND_F( tf2bridge_spawn_dummy, "Spawn a persistent TF2 bridge damage-test
 
 	Vector vecForward;
 	AngleVectors( pPlayer->EyeAngles(), &vecForward );
-	const Vector vecOrigin = pPlayer->EyePosition() + vecForward * 128.0f;
+	const Vector vecOrigin = pPlayer->GetAbsOrigin() + vecForward * 128.0f;
 	CTFTargetDummy *pDummy = CTFTargetDummy::Create( vecOrigin, pPlayer->EyeAngles(), pPlayer );
 	if ( pDummy )
 	{
