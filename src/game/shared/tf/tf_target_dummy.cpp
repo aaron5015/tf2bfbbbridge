@@ -117,7 +117,7 @@ int CTFTargetDummy::OnTakeDamage( const CTakeDamageInfo &info )
 
 	CBaseEntity *pAttacker = info.GetAttacker();
 	CBaseEntity *pInflictor = info.GetInflictor();
-	Msg( "[TF2BridgeDummy] hit target=%s attacker=%s inflictor=%s damage=%.2f base=%.2f type=0x%08x pos=(%.1f %.1f %.1f) healthBefore=%d\\n",
+	Msg( "[TF2BridgeDummy] hit target=%s attacker=%s inflictor=%s damage=%.2f base=%.2f type=0x%08x pos=(%.1f %.1f %.1f) healthBefore=%d\n",
 		GetClassname(),
 		pAttacker ? pAttacker->GetClassname() : "<null>",
 		pInflictor ? pInflictor->GetClassname() : "<null>",
@@ -132,7 +132,7 @@ int CTFTargetDummy::OnTakeDamage( const CTakeDamageInfo &info )
 
 	if ( m_iHealth <= 0 )
 	{
-		Msg( "[TF2BridgeDummy] killed by damage event\\n" );
+		Msg( "[TF2BridgeDummy] killed by damage event\n" );
 		Destroy();
 	}
 
@@ -228,6 +228,32 @@ bool CTFTargetDummy::ShouldCollide( int collisionGroup, int contentsMask ) const
 }
 
 //-----------------------------------------------------------------------------
+CON_COMMAND_F( tf2bridge_trace_dummy, "Trace a weapon-style line from the player's view and report the hit entity.", FCVAR_CHEAT )
+{
+	CBasePlayer *pBasePlayer = UTIL_GetCommandClient();
+	CTFPlayer *pPlayer = ToTFPlayer( pBasePlayer );
+	if ( !pPlayer )
+	{
+		Msg( "tf2bridge_trace_dummy must be run by a player in-game.\n" );
+		return;
+	}
+
+	Vector vecForward;
+	AngleVectors( pPlayer->EyeAngles(), &vecForward );
+	const Vector vecStart = pPlayer->EyePosition();
+	const Vector vecEnd = vecStart + vecForward * 4096.0f;
+	trace_t tr;
+	UTIL_TraceLine( vecStart, vecEnd, MASK_SHOT, pPlayer, COLLISION_GROUP_NONE, &tr );
+
+	CBaseEntity *pHit = tr.m_pEnt;
+	Msg( "[TF2BridgeTrace] start=(%.1f %.1f %.1f) end=(%.1f %.1f %.1f) fraction=%.4f startsolid=%d allsolid=%d hit=%s hitWorld=%d hitpos=(%.1f %.1f %.1f)\n",
+		vecStart.x, vecStart.y, vecStart.z,
+		vecEnd.x, vecEnd.y, vecEnd.z,
+		tr.fraction, tr.startsolid ? 1 : 0, tr.allsolid ? 1 : 0,
+		pHit ? pHit->GetClassname() : "<none>", tr.DidHitWorld() ? 1 : 0,
+		tr.endpos.x, tr.endpos.y, tr.endpos.z );
+}
+
 CON_COMMAND_F( tf2bridge_spawn_dummy, "Spawn a persistent TF2 bridge damage-test dummy in front of the issuing player.", FCVAR_CHEAT )
 {
 	CBasePlayer *pBasePlayer = UTIL_GetCommandClient();
@@ -240,7 +266,7 @@ CON_COMMAND_F( tf2bridge_spawn_dummy, "Spawn a persistent TF2 bridge damage-test
 
 	Vector vecForward;
 	AngleVectors( pPlayer->EyeAngles(), &vecForward );
-	const Vector vecOrigin = pPlayer->GetAbsOrigin() + vecForward * 128.0f;
+	const Vector vecOrigin = pPlayer->EyePosition() + vecForward * 128.0f;
 	CTFTargetDummy *pDummy = CTFTargetDummy::Create( vecOrigin, pPlayer->EyeAngles(), pPlayer );
 	if ( pDummy )
 	{
