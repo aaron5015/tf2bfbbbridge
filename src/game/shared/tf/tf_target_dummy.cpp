@@ -257,6 +257,11 @@ CON_COMMAND_F( tf2bridge_trace_dummy, "Report TF2 bridge dummy collision state a
 		vecMaxs.x, vecMaxs.y, vecMaxs.z,
 		(int)pDummy->GetSolid(), pDummy->GetSolidFlags(), pDummy->GetCollisionGroup(),
 		pDummy->GetHealth() );
+	Msg( "[TF2BridgeTrace] collisionProp partitionHandle=%u isSolid=%d boundsDefinedInEntitySpace=%d modelIndex=%d eflags=0x%x\\n",
+		(unsigned int)pDummy->CollisionProp()->GetPartitionHandle(),
+		pDummy->CollisionProp()->IsSolid() ? 1 : 0,
+		pDummy->CollisionProp()->IsBoundsDefinedInEntitySpace() ? 1 : 0,
+		pDummy->GetModelIndex(), pDummy->GetEFlags() );
 
 	CBaseEntity *pNearby[128];
 	const Vector vecBoxMins = vecOrigin - Vector( 32, 32, 32 );
@@ -338,6 +343,17 @@ CON_COMMAND_F( tf2bridge_trace_dummy, "Report TF2 bridge dummy collision state a
 		trCrossHull.fraction, trCrossHull.startsolid ? 1 : 0, trCrossHull.allsolid ? 1 : 0,
 		trCrossHull.m_pEnt ? trCrossHull.m_pEnt->GetClassname() : "<none>", trCrossHull.DidHitWorld() ? 1 : 0,
 		trCrossHull.endpos.x, trCrossHull.endpos.y, trCrossHull.endpos.z );
+
+	// Force the collision property to refresh its partition entry, then retry.
+	// If this changes the result, the entity's solid-partition registration may
+	// have been stale or incomplete despite its presence in entity queries.
+	pDummy->CollisionProp()->UpdatePartition();
+	trace_t trAfterPartitionRefresh;
+	UTIL_TraceLine( vecCrossStart, vecCrossEnd, MASK_SHOT, pPlayer, COLLISION_GROUP_NONE, &trAfterPartitionRefresh );
+	Msg( "[TF2BridgeTrace] crossX after UpdatePartition MASK_SHOT fraction=%.4f startsolid=%d allsolid=%d hit=%s hitWorld=%d hitpos=(%.1f %.1f %.1f)\\n",
+		trAfterPartitionRefresh.fraction, trAfterPartitionRefresh.startsolid ? 1 : 0, trAfterPartitionRefresh.allsolid ? 1 : 0,
+		trAfterPartitionRefresh.m_pEnt ? trAfterPartitionRefresh.m_pEnt->GetClassname() : "<none>", trAfterPartitionRefresh.DidHitWorld() ? 1 : 0,
+		trAfterPartitionRefresh.endpos.x, trAfterPartitionRefresh.endpos.y, trAfterPartitionRefresh.endpos.z );
 
 }
 
