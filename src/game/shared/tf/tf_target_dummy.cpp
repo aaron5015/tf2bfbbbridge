@@ -23,10 +23,7 @@ LINK_ENTITY_TO_CLASS( tf_target_dummy, CTFTargetDummy);
 IMPLEMENT_AUTO_LIST( ITFTargetDummy );
 
 ConVar tf_target_dummy_health( "tf_target_dummy_health", "200", FCVAR_GAMEDLL | FCVAR_DEVELOPMENTONLY ); // DEV ONLY
-ConVar tf_target_dummy_melee_mult( "tf_target_dummy_melee_mult", "3.0f", FCVAR_GAMEDLL | FCVAR_DEVELOPMENTONLY ); // DEV ONLY
-ConVar tf_target_dummy_bullet_mult( "tf_target_dummy_bullet_mult", "0.1f", FCVAR_GAMEDLL | FCVAR_DEVELOPMENTONLY ); // DEV ONLY
-ConVar tf_target_dummy_other_mult( "tf_target_dummy_other_mult", "0.2f", FCVAR_GAMEDLL | FCVAR_DEVELOPMENTONLY ); // DEV ONLY
-ConVar tf_target_dummy_lifetime( "tf_target_dummy_lifetime", "30.0f", FCVAR_GAMEDLL | FCVAR_DEVELOPMENTONLY ); // DEV ONLY
+ConVar tf_target_dummy_health( "tf_target_dummy_health", "10000", FCVAR_GAMEDLL | FCVAR_DEVELOPMENTONLY ); // Debug target health
 
 #ifdef GAME_DLL
 extern ConVar tf_obj_gib_velocity_min;
@@ -100,7 +97,7 @@ void CTFTargetDummy::Spawn()
 
 	//DispatchParticleEffect( "merasmus_object_spawn", WorldSpaceCenter(), GetAbsAngles() );
 
-	SetContextThink( &CTFTargetDummy::DestroyThink, gpGlobals->curtime + tf_target_dummy_lifetime.GetFloat(), "DestroyThink" );
+	// Intentionally persistent: this is a reusable damage-measurement target.
 }
 
 //-----------------------------------------------------------------------------
@@ -116,37 +113,27 @@ int CTFTargetDummy::OnTakeDamage( const CTakeDamageInfo &info )
 {
 	DispatchParticleEffect( "lowV_debrischunks", info.GetDamagePosition(), GetAbsAngles() );
 
-	CTakeDamageInfo newinfo = info;
+	CBaseEntity *pAttacker = info.GetAttacker();
+	CBaseEntity *pInflictor = info.GetInflictor();
+	Msg( "[TF2BridgeDummy] hit target=%s attacker=%s inflictor=%s damage=%.2f base=%.2f type=0x%08x pos=(%.1f %.1f %.1f) healthBefore=%d\\n",
+		GetClassname(),
+		pAttacker ? pAttacker->GetClassname() : "<null>",
+		pInflictor ? pInflictor->GetClassname() : "<null>",
+		info.GetDamage(),
+		info.GetBaseDamage(),
+		info.GetDamageType(),
+		info.GetDamagePosition().x, info.GetDamagePosition().y, info.GetDamagePosition().z,
+		m_iHealth );
 
-	if ( InSameTeam( info.GetAttacker() ))
-	{
-		return 0;
-	}
-
-	// melee and fire is normal
-	// bullet is heavily reduced
-	// everything else (blast/ energy etc..) reduced
-
-	//CTFPlayer *pTFPlayer = ToTFPlayer( newinfo.GetAttacker() );
-	if ( ( newinfo.GetDamageType() & DMG_BUCKSHOT ) || ( newinfo.GetDamageType() & DMG_BULLET ) )
-	{
-		newinfo.SetDamage( newinfo.GetDamage() * tf_target_dummy_bullet_mult.GetFloat() );
-	}
-	else if ( ( newinfo.GetDamageType() & DMG_CLUB ) || ( newinfo.GetDamageType() & DMG_BURN ) )
-	{
-		newinfo.SetDamage( newinfo.GetDamage() * tf_target_dummy_melee_mult.GetFloat() );
-	}
-	else
-	{
-		newinfo.SetDamage( newinfo.GetDamage() * tf_target_dummy_other_mult.GetFloat() );
-	}
-
-	int iDamage = BaseClass::OnTakeDamage( newinfo );
+	// Do not apply the pumpkin target's custom damage multipliers or team filter.
+	int iDamage = BaseClass::OnTakeDamage( info );
 
 	if ( m_iHealth <= 0 )
 	{
+		Msg( "[TF2BridgeDummy] killed by damage event\\n" );
 		Destroy();
 	}
+
 	return iDamage;
 }
 
@@ -236,4 +223,25 @@ bool CTFTargetDummy::ShouldCollide( int collisionGroup, int contentsMask ) const
 	}
 
 	return BaseClass::ShouldCollide( collisionGroup, contentsMask );
+}
+
+//-----------------------------------------------------------------------------
+CON_COMMAND_F( tf2bridge_spawn_dummy, "Spawn a persistent TF2 bridge damage-test dummy in front of the issuing player.", FCVAR_CHEAT )
+{
+	CBasePlayer *pBasePlayer = UTIL_GetCommandClient();
+	CTFPlayer *pPlayer = ToTFPlayer( pBasePlayer );
+	if ( !pPlayer )
+	{
+		Msg( "tf2bridge_spawn_dummy must be run by a player in-game.\\n" );
+		return;
+	}
+
+	Vector vecForward;
+	AngleVectors( pPlayer->EyeAngles(), &vecForward );
+	const Vector vecOrigin = pPlayer->EyePosition() + vecForward * 128.0f;
+	CTFTargetDummy *pDummy = CTFTargetDummy::Create( vecOrigin, pPlayer->EyeAngles(), pPlayer );
+	if ( pDummy )
+	{
+		Msg( "[TF2BridgeDummy] spawned at (%.1f %.1f %.1f), health=%d\\n", vecOrigin.x, vecOrigin.y, vecOrigin.z, pDummy->GetHealth() );
+	}
 }
