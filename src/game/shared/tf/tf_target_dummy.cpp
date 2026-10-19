@@ -356,6 +356,9 @@ CON_COMMAND_F( tf2bridge_trace_dummy, "Report TF2 bridge dummy collision state a
 		DispatchSpawn( pControl );
 		pControl->SetMoveType( MOVETYPE_NONE );
 		pControl->SetSolid( SOLID_BBOX );
+		// prop_dynamic's spawn setup may leave FSOLID_NOT_SOLID set; clear
+		// solid flags so this control is actually eligible for collision traces.
+		pControl->SetSolidFlags( 0 );
 		pControl->SetCollisionGroup( COLLISION_GROUP_NONE );
 		pControl->SetCollisionBounds( Vector( -16, -16, 0 ), Vector( 16, 16, 72 ) );
 		pControl->CollisionProp()->UpdatePartition();
