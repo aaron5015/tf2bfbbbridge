@@ -22,7 +22,6 @@ LINK_ENTITY_TO_CLASS( tf_target_dummy, CTFTargetDummy);
 
 IMPLEMENT_AUTO_LIST( ITFTargetDummy );
 
-ConVar tf_target_dummy_health( "tf_target_dummy_health", "200", FCVAR_GAMEDLL | FCVAR_DEVELOPMENTONLY ); // DEV ONLY
 ConVar tf_target_dummy_health( "tf_target_dummy_health", "10000", FCVAR_GAMEDLL | FCVAR_DEVELOPMENTONLY ); // Debug target health
 
 #ifdef GAME_DLL
@@ -115,7 +114,7 @@ int CTFTargetDummy::OnTakeDamage( const CTakeDamageInfo &info )
 
 	CBaseEntity *pAttacker = info.GetAttacker();
 	CBaseEntity *pInflictor = info.GetInflictor();
-	Msg( "[TF2BridgeDummy] hit target=%s attacker=%s inflictor=%s damage=%.2f base=%.2f type=0x%08x pos=(%.1f %.1f %.1f) healthBefore=%d\\n",
+	Msg( "[TF2BridgeDummy] hit target=%s attacker=%s inflictor=%s damage=%.2f base=%.2f type=0x%08x pos=(%.1f %.1f %.1f) healthBefore=%d\n",
 		GetClassname(),
 		pAttacker ? pAttacker->GetClassname() : "<null>",
 		pInflictor ? pInflictor->GetClassname() : "<null>",
@@ -130,7 +129,7 @@ int CTFTargetDummy::OnTakeDamage( const CTakeDamageInfo &info )
 
 	if ( m_iHealth <= 0 )
 	{
-		Msg( "[TF2BridgeDummy] killed by damage event\\n" );
+		Msg( "[TF2BridgeDummy] killed by damage event\n" );
 		Destroy();
 	}
 
@@ -232,7 +231,7 @@ CON_COMMAND_F( tf2bridge_spawn_dummy, "Spawn a persistent TF2 bridge damage-test
 	CTFPlayer *pPlayer = ToTFPlayer( pBasePlayer );
 	if ( !pPlayer )
 	{
-		Msg( "tf2bridge_spawn_dummy must be run by a player in-game.\\n" );
+		Msg( "tf2bridge_spawn_dummy must be run by a player in-game.\n" );
 		return;
 	}
 
@@ -242,6 +241,6 @@ CON_COMMAND_F( tf2bridge_spawn_dummy, "Spawn a persistent TF2 bridge damage-test
 	CTFTargetDummy *pDummy = CTFTargetDummy::Create( vecOrigin, pPlayer->EyeAngles(), pPlayer );
 	if ( pDummy )
 	{
-		Msg( "[TF2BridgeDummy] spawned at (%.1f %.1f %.1f), health=%d\\n", vecOrigin.x, vecOrigin.y, vecOrigin.z, pDummy->GetHealth() );
+		Msg( "[TF2BridgeDummy] spawned at (%.1f %.1f %.1f), health=%d\n", vecOrigin.x, vecOrigin.y, vecOrigin.z, pDummy->GetHealth() );
 	}
 }
