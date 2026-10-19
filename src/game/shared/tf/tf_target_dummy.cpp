@@ -238,7 +238,7 @@ CON_COMMAND_F( tf2bridge_trace_dummy, "Report TF2 bridge dummy collision state a
 		return;
 	}
 
-	CTFTargetDummy *pDummy = g_TFTargetDummyAutoList.Head();
+	CTFTargetDummy *pDummy = g_ITFTargetDummyAutoList.Head();
 	if ( !pDummy )
 	{
 		Msg( "[TF2BridgeTrace] no tf_target_dummy entity found. Spawn one first.\n" );
@@ -256,7 +256,6 @@ CON_COMMAND_F( tf2bridge_trace_dummy, "Report TF2 bridge dummy collision state a
 		vecMins.x, vecMins.y, vecMins.z,
 		vecMaxs.x, vecMaxs.y, vecMaxs.z,
 		(int)pDummy->GetSolid(), pDummy->GetSolidFlags(), pDummy->GetCollisionGroup(),
-		pDummy->CollisionProp()->GetSolid() ? pDummy->CollisionProp()->GetSolid()->GetContents() : 0,
 		pDummy->GetHealth() );
 
 	Vector vecForward;
