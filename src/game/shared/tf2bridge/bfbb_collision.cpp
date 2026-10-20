@@ -57,7 +57,9 @@ static int s_chunkGridWidth = 0;
 static int s_chunkGridHeight = 0;
 static float s_chunkGridOriginX = 0.0f;
 static float s_chunkGridOriginY = 0.0f;
-static const float kCollisionChunkSize = 2048.0f;
+// Larger chunks reduce artificial open-edge collision artifacts from splitting
+// continuous JSP surfaces into many independently cooked VPhysics meshes.
+static const float kCollisionChunkSize = 8192.0f;
 static const int kMaxCollisionGridCells = 65536;
 static const int kMaxCellsPerTriangle = 64;
 static unsigned int s_loadedScene = 0;
