@@ -590,11 +590,23 @@ static bool HasWalkableFloorNear(const Vector& pos, Vector& floorPos, Vector& fl
     const Vector rayStart = pos + Vector(0.0f, 0.0f, 8.0f);
     const Vector rayEnd = pos - Vector(0.0f, 0.0f, 24.0f);
     trace_t floorTrace;
-    if (!TraceCollisionChunks(rayStart, rayEnd, vec3_origin, vec3_origin, floorTrace) ||
-        floorTrace.startsolid || floorTrace.allsolid || floorTrace.fraction >= 1.0f)
+    memset(&floorTrace, 0, sizeof(floorTrace));
+    floorTrace.fraction = 1.0f;
+    if (s_pCollide)
+    {
+        // In whole-mesh isolation mode, floor corroboration must use the same
+        // monolithic mesh as movement. Consulting chunk meshes here can still
+        // manufacture a false floor from an artificial chunk boundary.
+        Ray_t floorRay;
+        floorRay.Init(rayStart, rayEnd, vec3_origin, vec3_origin);
+        physcollision->TraceBox(floorRay, s_pCollide, vec3_origin, vec3_angle, &floorTrace);
+    }
+    else if (!TraceCollisionChunks(rayStart, rayEnd, vec3_origin, vec3_origin, floorTrace))
     {
         return false;
     }
+    if (floorTrace.startsolid || floorTrace.allsolid || floorTrace.fraction >= 1.0f)
+        return false;
 
     floorPos = rayStart + (rayEnd - rayStart) * floorTrace.fraction;
     floorNormal = floorTrace.plane.normal;
