@@ -673,7 +673,7 @@ void BFBBColl_MergeHullTrace(const Vector& start, const Vector& end, const Vecto
     {
         pm.startsolid = true;
         pm.allsolid = tr.allsolid;
-        pm.fraction = floorFraction;
+        pm.fraction = 0.0f;
         pm.startpos = start;
         pm.endpos = start;
         pm.contents = CONTENTS_SOLID;
@@ -717,7 +717,7 @@ void BFBBColl_MergeHullTrace(const Vector& start, const Vector& end, const Vecto
         pm = tr;
         pm.startsolid = false;
         pm.allsolid = false;
-        pm.fraction = 0.0f;
+        pm.fraction = floorFraction;
         pm.fractionleftsolid = 0.0f;
         pm.startpos = start;
         pm.endpos = start + move * floorFraction;
