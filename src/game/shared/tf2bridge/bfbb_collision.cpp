@@ -615,6 +615,30 @@ void BFBBColl_MergeHullTrace(const Vector& start, const Vector& end, const Vecto
     const bool traced = TraceCollisionChunks(start, end, mins, maxs, tr, &encounteredStartSolid,
         &startSolidTrace);
 
+    // Chunk collides are independently cooked meshes and can expose artificial
+    // edges that do not exist in the original JSP. When a chunk reports a hit,
+    // verify it against the monolithic collision before allowing it to block
+    // movement. Keep the chunk fast path for clear traces.
+    if (traced && (tr.startsolid || tr.allsolid || tr.fraction < 1.0f) && s_pCollide)
+    {
+        Ray_t verifyRay;
+        verifyRay.Init(start, end, mins, maxs);
+        trace_t wholeTrace;
+        memset(&wholeTrace, 0, sizeof(wholeTrace));
+        wholeTrace.fraction = 1.0f;
+        physcollision->TraceBox(verifyRay, s_pCollide, vec3_origin, vec3_angle, &wholeTrace);
+
+        const bool wholeHit = wholeTrace.startsolid || wholeTrace.allsolid || wholeTrace.fraction < 1.0f;
+        if (!wholeHit || (!wholeTrace.startsolid && !wholeTrace.allsolid &&
+            wholeTrace.fraction > tr.fraction + 0.001f))
+        {
+            tr = wholeTrace;
+            encounteredStartSolid = wholeTrace.startsolid || wholeTrace.allsolid;
+            if (encounteredStartSolid)
+                startSolidTrace = wholeTrace;
+        }
+    }
+
     if (profile)
     {
         static double windowStart = 0.0;
