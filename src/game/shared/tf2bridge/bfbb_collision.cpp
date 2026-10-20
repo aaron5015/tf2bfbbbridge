@@ -133,14 +133,20 @@ static bool BuildCollisionChunks()
         const Vector& a = s_verts[i];
         const Vector& b = s_verts[i + 1];
         const Vector& c = s_verts[i + 2];
-        const float triMinX = MIN(a.x, MIN(b.x, c.x));
-        const float triMaxX = MAX(a.x, MAX(b.x, c.x));
-        const float triMinY = MIN(a.y, MIN(b.y, c.y));
-        const float triMaxY = MAX(a.y, MAX(b.y, c.y));
-        const int x0 = (int)floor(triMinX / kCollisionChunkSize) - minCellX;
-        const int x1 = (int)floor(triMaxX / kCollisionChunkSize) - minCellX;
-        const int y0 = (int)floor(triMinY / kCollisionChunkSize) - minCellY;
-        const int y1 = (int)floor(triMaxY / kCollisionChunkSize) - minCellY;
+        // Keep nearby triangles in each chunk as a collision halo. A chunk
+        // built from only triangles whose bounds touch its cell has open mesh
+        // edges at cell boundaries; VPhysics can report those exposed edges as
+        // false walls/floors even though the complete mesh has no collision.
+        // The halo keeps adjacent surface triangles together around player hulls.
+        const float chunkHalo = 64.0f;
+        const float triMinX = MIN(a.x, MIN(b.x, c.x)) - chunkHalo;
+        const float triMaxX = MAX(a.x, MAX(b.x, c.x)) + chunkHalo;
+        const float triMinY = MIN(a.y, MIN(b.y, c.y)) - chunkHalo;
+        const float triMaxY = MAX(a.y, MAX(b.y, c.y)) + chunkHalo;
+        const int x0 = MAX(0, (int)floor(triMinX / kCollisionChunkSize) - minCellX);
+        const int x1 = MIN(width - 1, (int)floor(triMaxX / kCollisionChunkSize) - minCellX);
+        const int y0 = MAX(0, (int)floor(triMinY / kCollisionChunkSize) - minCellY);
+        const int y1 = MIN(height - 1, (int)floor(triMaxY / kCollisionChunkSize) - minCellY);
         const long long cells = (long long)(x1 - x0 + 1) * (y1 - y0 + 1);
 
         if (cells <= 0 || cells > kMaxCellsPerTriangle)
