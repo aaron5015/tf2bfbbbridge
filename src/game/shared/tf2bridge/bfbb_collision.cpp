@@ -612,32 +612,30 @@ void BFBBColl_MergeHullTrace(const Vector& start, const Vector& end, const Vecto
     const double traceStart = profile ? Plat_FloatTime() : 0.0;
     bool encounteredStartSolid = false;
     trace_t startSolidTrace;
-    const bool traced = TraceCollisionChunks(start, end, mins, maxs, tr, &encounteredStartSolid,
-        &startSolidTrace);
 
-    // Chunk collides are independently cooked meshes and can expose artificial
-    // edges that do not exist in the original JSP. When a chunk reports a hit,
-    // verify it against the monolithic collision before allowing it to block
-    // movement. Keep the chunk fast path for clear traces.
-    if (traced && (tr.startsolid || tr.allsolid || tr.fraction < 1.0f) && s_pCollide)
+    // Diagnostic isolation mode: use the original monolithic JSP collision for
+    // movement traces. This bypasses independently cooked spatial chunks while
+    // preserving the zero-length start-solid behavior needed by CanUnduck().
+    bool traced = false;
+    if (s_pCollide)
     {
-        Ray_t verifyRay;
-        verifyRay.Init(start, end, mins, maxs);
-        trace_t wholeTrace;
-        memset(&wholeTrace, 0, sizeof(wholeTrace));
-        wholeTrace.fraction = 1.0f;
-        physcollision->TraceBox(verifyRay, s_pCollide, vec3_origin, vec3_angle, &wholeTrace);
-
-        const bool wholeHit = wholeTrace.startsolid || wholeTrace.allsolid || wholeTrace.fraction < 1.0f;
-        if (!wholeHit || (!wholeTrace.startsolid && !wholeTrace.allsolid &&
-            wholeTrace.fraction > tr.fraction + 0.001f))
-        {
-            tr = wholeTrace;
-            encounteredStartSolid = wholeTrace.startsolid || wholeTrace.allsolid;
-            if (encounteredStartSolid)
-                startSolidTrace = wholeTrace;
-        }
+        Ray_t wholeRay;
+        wholeRay.Init(start, end, mins, maxs);
+        memset(&tr, 0, sizeof(tr));
+        tr.fraction = 1.0f;
+        physcollision->TraceBox(wholeRay, s_pCollide, vec3_origin, vec3_angle, &tr);
+        encounteredStartSolid = tr.startsolid || tr.allsolid;
+        if (encounteredStartSolid)
+            startSolidTrace = tr;
+        traced = true;
     }
+    else
+    {
+        traced = TraceCollisionChunks(start, end, mins, maxs, tr, &encounteredStartSolid,
+            &startSolidTrace);
+    }
+
+    // Whole-mesh-only isolation mode intentionally skips chunk-hit verification.
 
     if (profile)
     {
