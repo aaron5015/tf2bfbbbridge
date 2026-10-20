@@ -1,0 +1,47 @@
+"TrainingProgress"
+{
+	"scout"
+	{
+		"progress"		"-1"
+	}
+	"sniper"
+	{
+		"progress"		"-1"
+	}
+	"soldier"
+	{
+		"progress"		"1"
+	}
+	"demoman"
+	{
+		"progress"		"-1"
+	}
+	"medic"
+	{
+		"progress"		"-1"
+	}
+	"heavy"
+	{
+		"progress"		"-1"
+	}
+	"pyro"
+	{
+		"progress"		"-1"
+	}
+	"spy"
+	{
+		"progress"		"-1"
+	}
+	"engineer"
+	{
+		"progress"		"-1"
+	}
+	"jesuschrist"
+	{
+		"progress"		"-1"
+	}
+	"teapotbattler"
+	{
+		"progress"		"-1"
+	}
+}

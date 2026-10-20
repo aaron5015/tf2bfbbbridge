@@ -9,6 +9,12 @@
 #include "tf_player.h"
 #include "tf_gamerules.h"
 #include "tf_target_dummy.h"
+#ifdef GAME_DLL
+#include "tf_weaponbase.h"
+#include "tf_weaponbase_rocket.h"
+#include "../../server/tf2bridge/tf2bridge_net.h"
+#include "tf2bridge/bfbb_collision.h"
+#endif
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -28,6 +34,101 @@ ConVar tf_target_dummy_health( "tf_target_dummy_health", "10000", FCVAR_GAMEDLL 
 extern ConVar tf_obj_gib_velocity_min;
 extern ConVar tf_obj_gib_velocity_max;
 extern ConVar tf_obj_gib_maxspeed;
+extern ConVar tf_damage_range;
+extern ConVar tf_damage_disablespread;
+#endif
+
+#ifdef GAME_DLL
+// Non-player CBaseAnimating targets do not pass through the player damage
+// modifier path. Reproduce the normal rocket distance modifier for bridge
+// proxies so their recorded damage matches TF2's player rocket damage.
+static float BridgeProxyRocketDamage( const CTakeDamageInfo &info, CBaseEntity *pVictim )
+{
+	float flDamage = info.GetDamage();
+	const int bitsDamage = info.GetDamageType();
+	if ( !( bitsDamage & DMG_USEDISTANCEMOD ) || ( bitsDamage & DMG_CRITICAL ) ||
+		info.GetCritType() != CTakeDamageInfo::CRIT_NONE )
+		return flDamage;
+
+	CBaseEntity *pAttacker = info.GetAttacker();
+	if ( !pAttacker || pAttacker == pVictim || ( bitsDamage & ( DMG_DROWN | DMG_FALL ) ) )
+		return flDamage;
+
+	const float flRandomDamageSpread = 0.10f;
+	float flRandomDamage = flDamage * tf_damage_range.GetFloat();
+	float flMin = 0.5f - flRandomDamageSpread;
+	float flMax = 0.5f + flRandomDamageSpread;
+	const float flDistance = MAX( 1.0f, ( pVictim->WorldSpaceCenter() - pAttacker->WorldSpaceCenter() ).Length() );
+	const float flCenter = RemapValClamped( flDistance / 512.0f, 0.0f, 2.0f, 1.0f, 0.0f );
+	flMin = MAX( 0.0f, flCenter - flRandomDamageSpread );
+	flMax = MIN( 1.0f, flCenter + flRandomDamageSpread );
+
+	float flRandomRangeVal;
+	if ( tf_damage_disablespread.GetBool() )
+		flRandomRangeVal = flMin + flRandomDamageSpread;
+	else
+		flRandomRangeVal = RandomFloat( flMin, flMax );
+
+	CTFWeaponBase *pWeapon = dynamic_cast<CTFWeaponBase *>( info.GetWeapon() );
+	if ( pWeapon && pAttacker->IsPlayer() && flRandomRangeVal > 0.5f )
+	{
+		switch ( pWeapon->GetWeaponID() )
+		{
+		case TF_WEAPON_ROCKETLAUNCHER:
+		case TF_WEAPON_ROCKETLAUNCHER_DIRECTHIT:
+		case TF_WEAPON_PARTICLE_CANNON:
+			flRandomDamage *= 0.5f;
+			break;
+		}
+	}
+
+	const float flVariance = SimpleSplineRemapValClamped( flRandomRangeVal, 0.0f, 1.0f,
+		-flRandomDamage, flRandomDamage );
+	return MAX( 0.0f, flDamage + flVariance );
+}
+
+// The BFBB collision mesh is queried by movement code, but it is not a BSP
+// world entity and therefore does not block Source weapon/projectile traces.
+// Reject bridge-proxy damage when that mesh lies between the source and target.
+static bool BridgeProxyDamageBlockedByBfbb( const CTakeDamageInfo &info,
+	CBaseEntity *pVictim, CBaseEntity *pAttacker, CBaseEntity *pInflictor )
+{
+	if ( !pVictim || !BFBBColl_LoadedScene() )
+		return false;
+
+	CTFBaseRocket *pRocket = dynamic_cast<CTFBaseRocket *>( pInflictor );
+	if ( pRocket && pRocket->GetEnemy() == pVictim )
+		return false; // A real direct impact already reached this target.
+
+	Vector vecStart;
+	Vector vecEnd;
+	if ( info.GetDamageType() & DMG_BLAST )
+	{
+		vecStart = info.GetDamagePosition();
+		vecEnd = pVictim->WorldSpaceCenter();
+	}
+	else
+	{
+		CTFPlayer *pPlayerAttacker = ToTFPlayer( pAttacker );
+		vecStart = pPlayerAttacker ? pPlayerAttacker->EyePosition() :
+			( pInflictor && pInflictor != pAttacker ? pInflictor->WorldSpaceCenter() :
+			  ( pAttacker ? pAttacker->WorldSpaceCenter() : vec3_origin ) );
+		vecEnd = info.GetDamagePosition();
+		if ( vecEnd == vec3_origin )
+			vecEnd = pVictim->WorldSpaceCenter();
+	}
+
+	const Vector vecRay = vecEnd - vecStart;
+	if ( vecRay.LengthSqr() <= 1.0f )
+		return false;
+
+	Vector vecHit, vecNormal;
+	if ( !BFBBColl_TraceLine( vecStart, vecEnd, vecHit, vecNormal ) )
+		return false;
+
+	const float flHitFraction = DotProduct( vecHit - vecStart, vecRay ) / vecRay.LengthSqr();
+	return flHitFraction < 0.98f;
+}
 #endif
 
 
@@ -38,7 +139,9 @@ CTFTargetDummy* CTFTargetDummy::Create( const Vector& vPosition, const QAngle& q
 	QAngle qProper = qAngles;
 	qProper.z = 0;
 	qProper.x = 0;
-	CTFTargetDummy *pDummy = assert_cast<CTFTargetDummy*>( CBaseEntity::Create( "tf_target_dummy", vPosition, qProper, pOwner ) );
+	// Do not set the creator as the entity owner: trace filters skip owned
+	// entities when the firing player is the pass entity.
+	CTFTargetDummy *pDummy = assert_cast<CTFTargetDummy*>( CBaseEntity::Create( "tf_target_dummy", vPosition, qProper, NULL ) );
 
 	if ( pDummy && pOwner )
 	{
@@ -51,6 +154,8 @@ CTFTargetDummy* CTFTargetDummy::Create( const Vector& vPosition, const QAngle& q
 
 //-----------------------------------------------------------------------------
 CTFTargetDummy::CTFTargetDummy()
+	: m_nBridgeNpcId( 0 )
+	, m_nBridgeSceneId( 0 )
 {
 }
 //-----------------------------------------------------------------------------
@@ -117,6 +222,39 @@ int CTFTargetDummy::OnTakeDamage( const CTakeDamageInfo &info )
 
 	CBaseEntity *pAttacker = info.GetAttacker();
 	CBaseEntity *pInflictor = info.GetInflictor();
+	#ifdef GAME_DLL
+	if ( IsBridgeNpcProxy() )
+	{
+		if ( BridgeProxyDamageBlockedByBfbb( info, this, pAttacker, pInflictor ) )
+		{
+			Msg( "[TF2BridgeDummy] proxy hit blocked by BFBB collision npc=%u\n", m_nBridgeNpcId );
+			return 0;
+		}
+
+		const float flProxyDamage = pInflictor && FStrEq( pInflictor->GetClassname(), "tf_projectile_rocket" )
+			? BridgeProxyRocketDamage( info, this ) : info.GetDamage();
+		Vector dir = WorldSpaceCenter() - ( pAttacker ? pAttacker->WorldSpaceCenter() : WorldSpaceCenter() );
+		if ( dir.LengthSqr() > 0.0001f )
+			VectorNormalize( dir );
+		else
+			dir.Init( 0.0f, 0.0f, 1.0f );
+
+		CTFPlayer *pTFAttacker = ToTFPlayer( pAttacker );
+		CTFWeaponBase *pWeapon = pTFAttacker ? pTFAttacker->GetActiveTFWeapon() : NULL;
+		const float flKnockbackMultiplier = pWeapon ? pWeapon->GetBridgeKnockbackMultiplier() : 1.5f;
+		// Source (x forward, y left, z up) maps to BFBB (y left, z up, x forward).
+		TF2Bridge_NotifyNpcHit( m_nBridgeSceneId, m_nBridgeNpcId, flProxyDamage,
+			info.GetBaseDamage() > 0.0f ? info.GetBaseDamage() : info.GetDamage(),
+			(unsigned int)info.GetDamageType(),
+			((info.GetDamageType() & DMG_CRITICAL) ? BRIDGE_HIT_CRITICAL : 0) |
+			(pInflictor && FStrEq( pInflictor->GetClassname(), "tf_projectile_rocket" ) ? BRIDGE_HIT_ROCKET : 0),
+			flKnockbackMultiplier,
+			dir.y, dir.z, dir.x );
+		Msg( "[TF2BridgeDummy] proxy hit npc=%u damage=%.2f raw=%.2f base=%.2f type=0x%08x\n",
+			m_nBridgeNpcId, flProxyDamage, info.GetDamage(), info.GetBaseDamage(), info.GetDamageType() );
+		return flProxyDamage;
+	}
+	#endif
 	Msg( "[TF2BridgeDummy] hit target=%s attacker=%s inflictor=%s damage=%.2f base=%.2f type=0x%08x pos=(%.1f %.1f %.1f) healthBefore=%d\n",
 		GetClassname(),
 		pAttacker ? pAttacker->GetClassname() : "<null>",
@@ -203,6 +341,13 @@ void CTFTargetDummy::SpewGibs()
 //-----------------------------------------------------------------------------
 bool CTFTargetDummy::ShouldCollide( int collisionGroup, int contentsMask ) const
 {
+	// Bridge proxies supply weapon hitboxes only; they should not act as
+	// invisible walls for the TF2 player running through BFBB.
+	if ( IsBridgeNpcProxy() && collisionGroup == COLLISION_GROUP_PLAYER_MOVEMENT )
+	{
+		return false;
+	}
+
 	if ( collisionGroup == COLLISION_GROUP_PLAYER_MOVEMENT )
 	{
 		if ( GetCollisionGroup() == TFCOLLISION_GROUP_OBJECT_SOLIDTOPLAYERMOVEMENT )

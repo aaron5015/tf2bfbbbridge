@@ -29,6 +29,10 @@ public:
 	virtual void	Spawn( void );
 	virtual void	Event_Killed( const CTakeDamageInfo &info );
 	virtual int		OnTakeDamage( const CTakeDamageInfo &info );
+	void SetBridgeNpcId( unsigned int id, unsigned int sceneId ) { m_nBridgeNpcId = id; m_nBridgeSceneId = sceneId; }
+	unsigned int GetBridgeNpcId() const { return m_nBridgeNpcId; }
+	unsigned int GetBridgeSceneId() const { return m_nBridgeSceneId; }
+	bool IsBridgeNpcProxy() const { return m_nBridgeNpcId != 0; }
 
 	void DestroyThink();
 	void Destroy();
@@ -39,6 +43,8 @@ public:
 private:
 	// Gibs.
 	CUtlVector<breakmodel_t>	m_aGibs;
+	unsigned int m_nBridgeNpcId;
+	unsigned int m_nBridgeSceneId;
 
 };
 

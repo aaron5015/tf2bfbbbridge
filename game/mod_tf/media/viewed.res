@@ -10,6 +10,10 @@
 	}
 	"bfbbtest"
 	{
-		"viewed"		"23"
+		"viewed"		"73"
+	}
+	"koth_viaduct_event"
+	{
+		"viewed"		"1"
 	}
 }

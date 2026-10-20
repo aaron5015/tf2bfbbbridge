@@ -1,6 +1,7 @@
 // NOTE: no cbase.h here on purpose; see tf2bridge_net.h.
 #include "tf2bridge_net.h"
 
+#include <chrono>
 #include <string.h>
 
 #ifdef _WIN32
@@ -29,8 +30,12 @@ static void NonBlocking(Sock s) { fcntl(s, F_SETFL, fcntl(s, F_GETFL, 0) | O_NON
 static Sock g_sock = kBad;
 static sockaddr_in g_bfbb;
 static uint32_t g_sendSeq = 0;
+static uint32_t g_sessionId = 0;
+static uint32_t g_npcHitSeq = 0;
 static uint32_t g_lastSeq = 0;
 static bool g_haveSeq = false;
+static uint32_t g_lastSessionId = 0;
+static bool g_haveSessionId = false;
 static bool g_weaponFiredPending = false;
 static uint32_t g_hitscanCount = 0;
 static float g_hitscanOrigin[3] = { 0.0f, 0.0f, 0.0f };
@@ -39,6 +44,7 @@ static float g_hitscanRange = 0.0f;
 static uint32_t g_rocketCount = 0;
 static int32_t g_rocketEntIndex[BRIDGE_MAX_ROCKETS] = {};
 static float g_rocketPos[BRIDGE_MAX_ROCKETS][3] = {};
+static float g_rocketAttackerPos[BRIDGE_MAX_ROCKETS][3] = {};
 static float g_rocketRadius[BRIDGE_MAX_ROCKETS] = {};
 static float g_rocketDamage[BRIDGE_MAX_ROCKETS] = {};
 static float g_rocketKnockbackMultiplier[BRIDGE_MAX_ROCKETS] = {};
@@ -48,7 +54,32 @@ void TF2Bridge_NotifyWeaponFired()
     g_weaponFiredPending = true;
 }
 
-void TF2Bridge_NotifyRocket(int entIndex, const float origin[3], float radius, float damage, float knockbackMultiplier)
+void TF2Bridge_NotifyNpcHit(uint32_t sceneId, uint32_t npcId, float damage, float baseDamage,
+                            uint32_t damageType, uint32_t hitFlags, float knockbackMultiplier,
+                            float dirX, float dirY, float dirZ)
+{
+    if (g_sock == kBad || npcId == 0)
+        return;
+
+    BridgeNpcHitPacket hit = {};
+    hit.magic = BRIDGE_MAGIC_NPC_HIT;
+    hit.seq = ++g_npcHitSeq;
+    hit.sessionId = g_sessionId;
+    hit.sceneId = sceneId;
+    hit.npcId = npcId;
+    hit.damageType = damageType;
+    hit.hitFlags = hitFlags;
+    hit.damage = damage;
+    hit.baseDamage = baseDamage;
+    hit.knockbackMultiplier = knockbackMultiplier;
+    hit.dirX = dirX;
+    hit.dirY = dirY;
+    hit.dirZ = dirZ;
+    sendto(g_sock, (const char*)&hit, sizeof(hit), 0, (const sockaddr*)&g_bfbb, sizeof(g_bfbb));
+}
+
+void TF2Bridge_NotifyRocket(int entIndex, const float origin[3], const float attackerOrigin[3],
+                            float radius, float damage, float knockbackMultiplier)
 {
     if (g_rocketCount >= BRIDGE_MAX_ROCKETS)
         return;
@@ -58,6 +89,9 @@ void TF2Bridge_NotifyRocket(int entIndex, const float origin[3], float radius, f
     g_rocketPos[i][0] = origin[0];
     g_rocketPos[i][1] = origin[1];
     g_rocketPos[i][2] = origin[2];
+    g_rocketAttackerPos[i][0] = attackerOrigin[0];
+    g_rocketAttackerPos[i][1] = attackerOrigin[1];
+    g_rocketAttackerPos[i][2] = attackerOrigin[2];
     g_rocketRadius[i] = radius;
     g_rocketDamage[i] = damage;
     g_rocketKnockbackMultiplier[i] = knockbackMultiplier;
@@ -112,6 +146,12 @@ bool TF2Bridge_NetOpen()
 
     NonBlocking(g_sock);
 
+    const uint64_t sessionClock = (uint64_t)std::chrono::duration_cast<std::chrono::microseconds>(
+        std::chrono::steady_clock::now().time_since_epoch()).count();
+    g_sessionId = (uint32_t)(sessionClock ^ (sessionClock >> 32) ^ (uintptr_t)&g_sessionId);
+    if (g_sessionId == 0)
+        g_sessionId = 1;
+
     memset(&g_bfbb, 0, sizeof(g_bfbb));
     g_bfbb.sin_family = AF_INET;
     g_bfbb.sin_port = htons(BRIDGE_PORT_BFBB);
@@ -127,6 +167,8 @@ void TF2Bridge_NetClose()
         g_sock = kBad;
     }
     g_haveSeq = false;
+    g_haveSessionId = false;
+    g_lastSessionId = 0;
 }
 
 bool TF2Bridge_NetIsOpen()
@@ -166,6 +208,12 @@ bool TF2Bridge_NetRecvState(BridgeStatePacket* out)
         memcpy(&p, buf, sizeof(p));
         if (p.magic != BRIDGE_MAGIC_STATE)
             continue;
+        if (!g_haveSessionId || p.sessionId != g_lastSessionId)
+        {
+            g_lastSessionId = p.sessionId;
+            g_haveSessionId = true;
+            g_haveSeq = false;
+        }
         if (g_haveSeq && (int32_t)(p.seq - g_lastSeq) <= 0)
             continue; // reordered or duplicate
         g_lastSeq = p.seq;
@@ -192,12 +240,14 @@ void TF2Bridge_NetSendIntent(BridgeIntentPacket* pkt)
         pkt->rocketCount = g_rocketCount;
         memcpy(pkt->rocketEntIndex, g_rocketEntIndex, sizeof(g_rocketEntIndex));
         memcpy(pkt->rocketPos, g_rocketPos, sizeof(g_rocketPos));
+        memcpy(pkt->rocketAttackerPos, g_rocketAttackerPos, sizeof(g_rocketAttackerPos));
         memcpy(pkt->rocketRadius, g_rocketRadius, sizeof(g_rocketRadius));
         memcpy(pkt->rocketDamage, g_rocketDamage, sizeof(g_rocketDamage));
         memcpy(pkt->rocketKnockbackMultiplier, g_rocketKnockbackMultiplier, sizeof(g_rocketKnockbackMultiplier));
         g_rocketCount = 0;
         memset(g_rocketEntIndex, 0, sizeof(g_rocketEntIndex));
         memset(g_rocketPos, 0, sizeof(g_rocketPos));
+        memset(g_rocketAttackerPos, 0, sizeof(g_rocketAttackerPos));
         memset(g_rocketRadius, 0, sizeof(g_rocketRadius));
         memset(g_rocketDamage, 0, sizeof(g_rocketDamage));
         memset(g_rocketKnockbackMultiplier, 0, sizeof(g_rocketKnockbackMultiplier));
@@ -216,5 +266,6 @@ void TF2Bridge_NetSendIntent(BridgeIntentPacket* pkt)
 
     pkt->magic = BRIDGE_MAGIC_INTENT;
     pkt->seq = ++g_sendSeq;
+    pkt->sessionId = g_sessionId;
     sendto(g_sock, (const char*)pkt, sizeof(*pkt), 0, (const sockaddr*)&g_bfbb, sizeof(g_bfbb));
 }

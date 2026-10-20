@@ -35,6 +35,7 @@
 #include "tf_weaponbase.h"
 #include "tf_weaponbase_gun.h"
 #include "tf_projectile_rocket.h"
+#include "tf_target_dummy.h"
 #include "usercmd.h"
 
 #include "tf2bridge_net.h"
@@ -74,6 +75,75 @@ static const float kCmdAxisMax = 450.0f;
 static int sRocketMultiplierEnt[BRIDGE_MAX_ROCKETS] = {};
 static float sRocketMultiplierValue[BRIDGE_MAX_ROCKETS] = {};
 static bool sRocketMultiplierSeen[BRIDGE_MAX_ROCKETS] = {};
+static int sRocketMeshEnt[BRIDGE_MAX_ROCKETS] = {};
+static Vector sRocketMeshPrevious[BRIDGE_MAX_ROCKETS];
+static bool sRocketMeshSeen[BRIDGE_MAX_ROCKETS] = {};
+
+static void TF2Bridge_BeginRocketMeshFrame()
+{
+	memset( sRocketMeshSeen, 0, sizeof( sRocketMeshSeen ) );
+}
+
+static bool TF2Bridge_TraceRocketAgainstBfbb( CTFBaseRocket *pRocket )
+{
+	if ( !pRocket || !pRocket->IsSolid() || !BFBBColl_LoadedScene() )
+		return false;
+
+	int iSlot = -1;
+	for ( int i = 0; i < BRIDGE_MAX_ROCKETS; ++i )
+	{
+		if ( sRocketMeshEnt[i] == pRocket->entindex() )
+		{
+			iSlot = i;
+			break;
+		}
+		if ( iSlot < 0 && sRocketMeshEnt[i] == 0 )
+			iSlot = i;
+	}
+	if ( iSlot < 0 )
+		return false;
+
+	const Vector vecEnd = pRocket->GetAbsOrigin();
+	Vector vecStart = vecEnd - pRocket->GetAbsVelocity() * gpGlobals->frametime;
+	if ( sRocketMeshEnt[iSlot] == pRocket->entindex() )
+		vecStart = sRocketMeshPrevious[iSlot];
+	sRocketMeshEnt[iSlot] = pRocket->entindex();
+	sRocketMeshPrevious[iSlot] = vecEnd;
+	sRocketMeshSeen[iSlot] = true;
+
+	if ( ( vecEnd - vecStart ).LengthSqr() <= 0.0001f )
+		return false;
+
+	Vector vecHit, vecNormal;
+	if ( !BFBBColl_TraceLine( vecStart, vecEnd, vecHit, vecNormal ) )
+		return false;
+
+	trace_t tr;
+	memset( &tr, 0, sizeof( tr ) );
+	tr.startpos = vecStart;
+	tr.endpos = vecHit;
+	tr.fraction = ( vecHit - vecStart ).Length() / ( vecEnd - vecStart ).Length();
+	tr.fraction = clamp( tr.fraction, 0.0f, 1.0f );
+	tr.plane.normal = vecNormal;
+	tr.plane.dist = DotProduct( vecNormal, vecHit );
+	tr.plane.type = 3;
+	tr.contents = CONTENTS_SOLID;
+	tr.surface.surfaceProps = 0;
+	tr.m_pEnt = CBaseEntity::Instance( INDEXENT( 0 ) );
+
+	pRocket->Explode( &tr, tr.m_pEnt );
+	sRocketMeshEnt[iSlot] = 0;
+	return true;
+}
+
+static void TF2Bridge_EndRocketMeshFrame()
+{
+	for ( int i = 0; i < BRIDGE_MAX_ROCKETS; ++i )
+	{
+		if ( sRocketMeshEnt[i] != 0 && !sRocketMeshSeen[i] )
+			sRocketMeshEnt[i] = 0;
+	}
+}
 
 static float TF2Bridge_GetRocketMultiplier(int entIndex, float activeMultiplier)
 {
@@ -104,6 +174,81 @@ static float TF2Bridge_GetRocketMultiplier(int entIndex, float activeMultiplier)
 static Vector BfbbToSource(float bx, float by, float bz, float scale)
 {
     return Vector(bz * scale, bx * scale, by * scale);
+}
+
+static bool BridgeStateHasNpc(const BridgeStatePacket& state, unsigned int id)
+{
+    const uint32_t count = MIN(state.npcCount, (uint32_t)BRIDGE_MAX_NPC_TARGETS);
+    for (uint32_t i = 0; i < count; ++i)
+    {
+        if (state.npcs[i].id == id)
+            return true;
+    }
+    return false;
+}
+
+static void TF2Bridge_UpdateNpcProxies(const BridgeStatePacket& state, float scale)
+{
+    if (!(state.flags & BRIDGE_STATE_GAMEPLAY) || !(state.flags & BRIDGE_STATE_NPC_TARGETS))
+    {
+        CBaseEntity* entity = NULL;
+        while ((entity = gEntList.FindEntityByClassname(entity, "tf_target_dummy")) != NULL)
+        {
+            CTFTargetDummy* dummy = dynamic_cast<CTFTargetDummy*>(entity);
+            if (dummy != NULL && dummy->IsBridgeNpcProxy())
+                UTIL_Remove(dummy);
+        }
+        return;
+    }
+
+    const uint32_t count = MIN(state.npcCount, (uint32_t)BRIDGE_MAX_NPC_TARGETS);
+    for (uint32_t i = 0; i < count; ++i)
+    {
+        const BridgeNpcTarget& target = state.npcs[i];
+        if (target.id == 0)
+            continue;
+
+        CTFTargetDummy* proxy = NULL;
+        CBaseEntity* entity = NULL;
+        while ((entity = gEntList.FindEntityByClassname(entity, "tf_target_dummy")) != NULL)
+        {
+            CTFTargetDummy* candidate = dynamic_cast<CTFTargetDummy*>(entity);
+            if (candidate != NULL && candidate->GetBridgeNpcId() == target.id)
+            {
+                proxy = candidate;
+                break;
+            }
+        }
+
+        const Vector origin = BfbbToSource(target.x, target.y, target.z, scale);
+        if (proxy == NULL)
+        {
+            proxy = CTFTargetDummy::Create(origin, QAngle(0, 0, 0), NULL);
+            if (proxy != NULL)
+            {
+                proxy->SetBridgeNpcId(target.id, state.sceneId);
+                Msg("[bfbb] created NPC proxy id=%u type=%d at (%.1f %.1f %.1f)\n",
+                    target.id, target.type, origin.x, origin.y, origin.z);
+            }
+        }
+        if (proxy != NULL)
+        {
+            proxy->SetBridgeNpcId(target.id, state.sceneId);
+            proxy->SetAbsOrigin(origin);
+        }
+    }
+
+    CBaseEntity* entity = NULL;
+    while ((entity = gEntList.FindEntityByClassname(entity, "tf_target_dummy")) != NULL)
+    {
+        CTFTargetDummy* dummy = dynamic_cast<CTFTargetDummy*>(entity);
+        if (dummy != NULL && dummy->IsBridgeNpcProxy() &&
+            !BridgeStateHasNpc(state, dummy->GetBridgeNpcId()))
+        {
+            Msg("[bfbb] removing stale NPC proxy id=%u\n", dummy->GetBridgeNpcId());
+            UTIL_Remove(dummy);
+        }
+    }
 }
 
 // Finds the mesh floor near `pos` and returns a spot standing on it. If there is
@@ -137,6 +282,7 @@ public:
     CTF2BridgeSystem()
         : CAutoGameSystemPerFrame("TF2BridgeSystem"),
         m_haveState(false),
+        m_stateReceivedAt(0.0f),
         m_nextDebug(0.0f),
         m_nextDraw(0.0f),
         m_lastScene(0),
@@ -168,8 +314,16 @@ public:
         BridgeStatePacket st;
         if (TF2Bridge_NetRecvState(&st))
         {
+            if (m_haveState && st.sessionId != m_state.sessionId)
+            {
+                Msg("[bfbb] sender session changed (%08x -> %08x); refreshing scene state\n",
+                    (unsigned)m_state.sessionId, (unsigned)st.sessionId);
+                m_lastScene = 0;
+                m_pendingSnap = true;
+            }
             m_state = st;
             m_haveState = true;
+            m_stateReceivedAt = gpGlobals->curtime;
 
             const bool gameplay = (st.flags & BRIDGE_STATE_GAMEPLAY) != 0 && st.sceneId != 0;
 
@@ -182,6 +336,17 @@ public:
             {
                 m_lastScene = st.sceneId;
                 m_pendingSnap = true;
+            }
+        }
+
+        if (m_haveState)
+        {
+            if (gpGlobals->curtime - m_stateReceivedAt <= 0.25f)
+                TF2Bridge_UpdateNpcProxies(m_state, bfbb_unit_scale.GetFloat());
+            else
+            {
+                BridgeStatePacket staleState = {};
+                TF2Bridge_UpdateNpcProxies(staleState, bfbb_unit_scale.GetFloat());
             }
         }
 
@@ -260,33 +425,40 @@ public:
             in.vx = vel.x;    in.vy = vel.y;    in.vz = vel.z;
             in.ex = eye.x;    in.ey = eye.y;    in.ez = eye.z;
 
-            // Rocket bridge. We send the actual TF2 rocket positions, GetRadius()
-            // and GetDamage(); BFBB sweeps them against the level, decides where they
-            // explode and who is hurt. This does not alter TF2 projectile physics.
+            // Rocket bridge. BFBB JSP collision is not an engine world entity, so
+            // sweep live rockets against the imported mesh here and run TF2's native
+            // explosion at impact. NPC damage returns through proxy hit packets.
             // bfbb_rocket_debug_lifetime now only controls how long BFBB's markers
             // stay up (0 = none); rockets are reported either way.
             in.rocketDebugLifetime = MAX(0.0f, bfbb_rocket_debug_lifetime.GetFloat());
             memset(sRocketMultiplierSeen, 0, sizeof(sRocketMultiplierSeen));
+            TF2Bridge_BeginRocketMeshFrame();
             {
                 CBaseEntity* rocket = NULL;
                 while ((rocket = gEntList.FindEntityByClassname(rocket, "tf_projectile_rocket")) != NULL)
                 {
                     CTFBaseRocket* baseRocket = dynamic_cast<CTFBaseRocket*>(rocket);
-                    if (baseRocket == NULL)
+                    if (baseRocket == NULL || !baseRocket->IsSolid())
+                        continue;
+
+                    if (TF2Bridge_TraceRocketAgainstBfbb(baseRocket))
                         continue;
 
                     const Vector pos = baseRocket->GetAbsOrigin();
+                    const Vector attackerOrigin = pPlayer->WorldSpaceCenter();
                     const float rocketMultiplier = TF2Bridge_GetRocketMultiplier(
                         baseRocket->entindex(),
                         activeWeapon != NULL ? activeWeapon->GetBridgeKnockbackMultiplier() : 1.5f);
                     TF2Bridge_NotifyRocket(
                         baseRocket->entindex(),
                         &pos.x,
+                        &attackerOrigin.x,
                         baseRocket->GetRadius(),
                         baseRocket->GetDamage(),
                         rocketMultiplier);
                 }
             }
+            TF2Bridge_EndRocketMeshFrame();
             for (int i = 0; i < BRIDGE_MAX_ROCKETS; ++i)
             {
                 if (sRocketMultiplierEnt[i] != 0 && !sRocketMultiplierSeen[i])
@@ -326,6 +498,7 @@ public:
 private:
     BridgeStatePacket m_state;
     bool m_haveState;
+    float m_stateReceivedAt;
     float m_nextDebug;
     float m_nextDraw;
     unsigned int m_lastScene;
