@@ -69,6 +69,16 @@ static CUtlVector<Vector> s_verts; // 3 per triangle, Source space
 static Vector s_mins(0, 0, 0), s_maxs(0, 0, 0);
 static int s_numUp = 0, s_numDown = 0, s_numSide = 0; // by (b-a)x(c-a), after the flip
 
+// Diagnostic snapshot from the actual movement merge on this DLL.
+static bool s_haveLastMovementTrace = false;
+static Vector s_lastMoveStart(0, 0, 0), s_lastMoveEnd(0, 0, 0);
+static Vector s_lastMoveMins(0, 0, 0), s_lastMoveMaxs(0, 0, 0);
+static float s_lastMoveInputFraction = 1.0f, s_lastMoveMeshFraction = 1.0f;
+static bool s_lastMoveStartSolid = false, s_lastMoveAllSolid = false;
+static Vector s_lastMoveNormal(0, 0, 0), s_lastMoveHitPos(0, 0, 0);
+static unsigned int s_lastMoveTraceCount = 0;
+static const char* const kBfbbCollisionDiagnosticVersion = "diag-2026-10-20-a";
+
 static void AddTriangleToSoup(CPhysPolysoup* soup, const Vector& a, const Vector& b, const Vector& c)
 {
     physcollision->PolysoupAddTriangle(soup, a, b, c, 0);
@@ -750,6 +760,19 @@ void BFBBColl_MergeHullTrace(const Vector& start, const Vector& end, const Vecto
     }
 
     const Vector move = end - start;
+    s_haveLastMovementTrace = true;
+    ++s_lastMoveTraceCount;
+    s_lastMoveStart = start;
+    s_lastMoveEnd = end;
+    s_lastMoveMins = mins;
+    s_lastMoveMaxs = maxs;
+    s_lastMoveInputFraction = pm.fraction;
+    s_lastMoveMeshFraction = tr.fraction;
+    s_lastMoveStartSolid = tr.startsolid;
+    s_lastMoveAllSolid = tr.allsolid;
+    s_lastMoveNormal = tr.plane.normal;
+    s_lastMoveHitPos = start + move * tr.fraction;
+
     // CanUnduck and other position-clearance checks use a zero-length trace.
     // Preserve the JSP overlap on the merged trace so the standing hull cannot
     // expand into overhead geometry while the player is crouched.
@@ -944,6 +967,27 @@ void BFBBColl_PrintInfo(const Vector& pos)
             bfbb_collision_dir.GetString());
         return;
     }
+
+    Msg("[bfbb] COLLISION DIAGNOSTICS %s | live merges on this DLL=%u | chunks=%d grid=%dx%d chunkSize=%.0f oversizedCollide=%s\\n",
+        kBfbbCollisionDiagnosticVersion, s_lastMoveTraceCount, s_chunkCollides.Count(),
+        s_chunkGridWidth, s_chunkGridHeight, kCollisionChunkSize, s_pCollide ? "yes" : "no");
+#ifdef CLIENT_DLL
+    Msg("[bfbb] diagnostic realm=CLIENT (predicted movement)\\n");
+#else
+    Msg("[bfbb] diagnostic realm=SERVER (authoritative movement)\\n");
+#endif
+    if (s_haveLastMovementTrace)
+        Msg("[bfbb] LAST LIVE MERGE start=(%.2f %.2f %.2f) end=(%.2f %.2f %.2f) mins=(%.1f %.1f %.1f) maxs=(%.1f %.1f %.1f) inputFrac=%.4f meshFrac=%.4f meshSS=%d meshAS=%d meshHit=(%.2f %.2f %.2f) meshNormal=(%.3f %.3f %.3f)\\n",
+            s_lastMoveStart.x, s_lastMoveStart.y, s_lastMoveStart.z,
+            s_lastMoveEnd.x, s_lastMoveEnd.y, s_lastMoveEnd.z,
+            s_lastMoveMins.x, s_lastMoveMins.y, s_lastMoveMins.z,
+            s_lastMoveMaxs.x, s_lastMoveMaxs.y, s_lastMoveMaxs.z,
+            s_lastMoveInputFraction, s_lastMoveMeshFraction,
+            s_lastMoveStartSolid ? 1 : 0, s_lastMoveAllSolid ? 1 : 0,
+            s_lastMoveHitPos.x, s_lastMoveHitPos.y, s_lastMoveHitPos.z,
+            s_lastMoveNormal.x, s_lastMoveNormal.y, s_lastMoveNormal.z);
+    else
+        Msg("[bfbb] no live movement merge recorded on this DLL yet\\n");
 
     Msg("[bfbb] scene %08x: %d triangles, scale %.1f, flip %d, twosided %d\n", s_loadedScene,
         s_verts.Count() / 3, s_loadedScale, (int)bfbb_coll_flip.GetBool(), (int)bfbb_coll_twosided.GetBool());
