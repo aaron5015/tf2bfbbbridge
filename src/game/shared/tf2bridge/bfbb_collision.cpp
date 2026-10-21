@@ -643,6 +643,7 @@ static void PrintPlayerHullProbe(const Vector& pos, const Vector& mins, const Ve
         if (!chunkTraced && !monolithicCollide)
             continue;
         if (sweep.startsolid || sweep.allsolid || sweep.fraction < 1.0f ||
+            combinedSweep.startsolid || combinedSweep.allsolid || combinedSweep.fraction < 1.0f ||
             wholeSweep.startsolid || wholeSweep.allsolid || wholeSweep.fraction < 1.0f)
         {
             const Vector chunkHit = pos + (end - pos) * sweep.fraction;
