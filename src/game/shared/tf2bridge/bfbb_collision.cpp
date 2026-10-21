@@ -594,19 +594,25 @@ static void PrintCollisionTraceSources(const Vector& start, const Vector& end,
 static void PrintPlayerHullProbe(const Vector& pos, const Vector& mins, const Vector& maxs,
     const char* label, CPhysCollide* monolithicCollide)
 {
-    trace_t tr;
-    memset(&tr, 0, sizeof(tr));
-    const bool traced = TraceCollisionChunks(pos, pos, mins, maxs, tr);
     Ray_t restRay;
     restRay.Init(pos, pos, mins, maxs);
+    trace_t tr;
+    memset(&tr, 0, sizeof(tr));
+    tr.fraction = 1.0f;
+    const bool traced = TraceSpatialChunksOnly(restRay, pos, pos, mins, maxs, tr);
+    trace_t combinedRest;
+    memset(&combinedRest, 0, sizeof(combinedRest));
+    combinedRest.fraction = 1.0f;
+    const bool combinedTraced = TraceCollisionChunks(pos, pos, mins, maxs, combinedRest);
     trace_t wholeRest;
     memset(&wholeRest, 0, sizeof(wholeRest));
     wholeRest.fraction = 1.0f;
     if (monolithicCollide)
         physcollision->TraceBox(restRay, monolithicCollide, vec3_origin, vec3_angle, &wholeRest);
-    Msg("[bfbb] %s hull at rest: chunks traced=%d ss=%d as=%d f=%.3f; whole ss=%d as=%d f=%.3f\n",
-        label, traced ? 1 : 0, tr.startsolid ? 1 : 0, tr.allsolid ? 1 : 0,
-        tr.fraction, wholeRest.startsolid ? 1 : 0, wholeRest.allsolid ? 1 : 0, wholeRest.fraction);
+    Msg("[bfbb] %s hull at rest: LIVE-SPATIAL traced=%d ss=%d as=%d f=%.3f; COMBINED traced=%d ss=%d as=%d f=%.3f; WHOLE ss=%d as=%d f=%.3f\n",
+        label, traced ? 1 : 0, tr.startsolid ? 1 : 0, tr.allsolid ? 1 : 0, tr.fraction,
+        combinedTraced ? 1 : 0, combinedRest.startsolid ? 1 : 0, combinedRest.allsolid ? 1 : 0,
+        combinedRest.fraction, wholeRest.startsolid ? 1 : 0, wholeRest.allsolid ? 1 : 0, wholeRest.fraction);
 
     static const Vector dirs[] = {
         Vector(1, 0, 0), Vector(-1, 0, 0), Vector(0, 1, 0), Vector(0, -1, 0),
@@ -619,11 +625,16 @@ static void PrintPlayerHullProbe(const Vector& pos, const Vector& mins, const Ve
     for (int i = 0; i < ARRAYSIZE(dirs); ++i)
     {
         const Vector end = pos + dirs[i] * distance;
-        trace_t sweep;
-        memset(&sweep, 0, sizeof(sweep));
-        const bool chunkTraced = TraceCollisionChunks(pos, end, mins, maxs, sweep);
         Ray_t ray;
         ray.Init(pos, end, mins, maxs);
+        trace_t sweep;
+        memset(&sweep, 0, sizeof(sweep));
+        sweep.fraction = 1.0f;
+        const bool chunkTraced = TraceSpatialChunksOnly(ray, pos, end, mins, maxs, sweep);
+        trace_t combinedSweep;
+        memset(&combinedSweep, 0, sizeof(combinedSweep));
+        combinedSweep.fraction = 1.0f;
+        const bool combinedTraced = TraceCollisionChunks(pos, end, mins, maxs, combinedSweep);
         trace_t wholeSweep;
         memset(&wholeSweep, 0, sizeof(wholeSweep));
         wholeSweep.fraction = 1.0f;
@@ -636,12 +647,28 @@ static void PrintPlayerHullProbe(const Vector& pos, const Vector& mins, const Ve
         {
             const Vector chunkHit = pos + (end - pos) * sweep.fraction;
             const Vector wholeHit = pos + (end - pos) * wholeSweep.fraction;
-            Msg("[bfbb] %s sweep %s: chunks f=%.3f ss=%d as=%d hit=(%.1f %.1f %.1f) n=(%.2f %.2f %.2f); whole f=%.3f ss=%d as=%d hit=(%.1f %.1f %.1f) n=(%.2f %.2f %.2f)\n",
+            Msg("[bfbb] %s sweep %s: LIVE-SPATIAL f=%.4f ss=%d as=%d hit=(%.1f %.1f %.1f) n=(%.2f %.2f %.2f); COMBINED traced=%d f=%.4f ss=%d as=%d; WHOLE f=%.4f ss=%d as=%d hit=(%.1f %.1f %.1f) n=(%.2f %.2f %.2f)\n",
                 label, names[i], sweep.fraction, sweep.startsolid ? 1 : 0, sweep.allsolid ? 1 : 0,
                 chunkHit.x, chunkHit.y, chunkHit.z, sweep.plane.normal.x, sweep.plane.normal.y,
-                sweep.plane.normal.z, wholeSweep.fraction, wholeSweep.startsolid ? 1 : 0,
-                wholeSweep.allsolid ? 1 : 0, wholeHit.x, wholeHit.y, wholeHit.z,
-                wholeSweep.plane.normal.x, wholeSweep.plane.normal.y, wholeSweep.plane.normal.z);
+                sweep.plane.normal.z, combinedTraced ? 1 : 0, combinedSweep.fraction,
+                combinedSweep.startsolid ? 1 : 0, combinedSweep.allsolid ? 1 : 0,
+                wholeSweep.fraction, wholeSweep.startsolid ? 1 : 0, wholeSweep.allsolid ? 1 : 0,
+                wholeHit.x, wholeHit.y, wholeHit.z, wholeSweep.plane.normal.x,
+                wholeSweep.plane.normal.y, wholeSweep.plane.normal.z);
+            // Cyan = probe path; red = live spatial hit/normal; green = monolithic hit;
+            // magenta = disagreement between the live chunk path and whole-mesh reference.
+            NDebugOverlay::Line(pos, end, 0, 200, 255, true, 12.0f);
+            if (sweep.startsolid || sweep.allsolid || sweep.fraction < 1.0f) {
+                NDebugOverlay::Cross(chunkHit, 5.0f, 255, 40, 40, true, 12.0f);
+                NDebugOverlay::Line(chunkHit, chunkHit + sweep.plane.normal * 24.0f, 255, 40, 40, true, 12.0f);
+            }
+            if (wholeSweep.startsolid || wholeSweep.allsolid || wholeSweep.fraction < 1.0f) {
+                NDebugOverlay::Cross(wholeHit, 5.0f, 40, 255, 40, true, 12.0f);
+                NDebugOverlay::Line(wholeHit, wholeHit + wholeSweep.plane.normal * 24.0f, 40, 255, 40, true, 12.0f);
+            }
+            if ((sweep.fraction < 1.0f) != (wholeSweep.fraction < 1.0f) ||
+                fabsf(sweep.fraction - wholeSweep.fraction) > 0.02f)
+                NDebugOverlay::Line(chunkHit, wholeHit, 255, 0, 255, true, 12.0f);
             PrintCollisionTraceSources(pos, end, mins, maxs, label);
         }
     }
