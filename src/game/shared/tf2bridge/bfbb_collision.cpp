@@ -1022,6 +1022,23 @@ void BFBBColl_PrintInfo(const Vector& pos)
         s_maxs.x, s_maxs.y, s_maxs.z);
     Msg("[bfbb] triangle normals: %d face up, %d face down, %d walls\n", s_numUp, s_numDown, s_numSide);
     Msg("[bfbb] you are at (%.0f %.0f %.0f)\n", pos.x, pos.y, pos.z);
+    if (s_chunkGridWidth > 0 && s_chunkGridHeight > 0)
+    {
+        const int cellX = (int)floor((pos.x - s_chunkGridOriginX) / kCollisionChunkSize);
+        const int cellY = (int)floor((pos.y - s_chunkGridOriginY) / kCollisionChunkSize);
+        const float cellMinX = s_chunkGridOriginX + cellX * kCollisionChunkSize;
+        const float cellMaxX = cellMinX + kCollisionChunkSize;
+        const float cellMinY = s_chunkGridOriginY + cellY * kCollisionChunkSize;
+        const float cellMaxY = cellMinY + kCollisionChunkSize;
+        Msg("[bfbb] PLAYER GRID CELL local=(%d,%d) arrayIndex=%d chunkIndex=%d boundsX=[%.0f,%.0f] boundsY=[%.0f,%.0f] edgeDistances=(xMin %.1f xMax %.1f yMin %.1f yMax %.1f)\\n",
+            cellX + (int)floor(s_chunkGridOriginX / kCollisionChunkSize),
+            cellY + (int)floor(s_chunkGridOriginY / kCollisionChunkSize),
+            cellY * s_chunkGridWidth + cellX,
+            (cellX >= 0 && cellX < s_chunkGridWidth && cellY >= 0 && cellY < s_chunkGridHeight)
+                ? s_chunkGrid[cellY * s_chunkGridWidth + cellX] : -1,
+            cellMinX, cellMaxX, cellMinY, cellMaxY,
+            pos.x - cellMinX, cellMaxX - pos.x, pos.y - cellMinY, cellMaxY - pos.y);
+    }
 
     // A vertical point ray can't reveal the side/overhang contacts that can
     // prevent a standing player hull from moving. Probe both stock TF2 hulls
