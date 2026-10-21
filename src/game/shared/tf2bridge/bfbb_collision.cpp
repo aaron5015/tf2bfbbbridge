@@ -221,6 +221,62 @@ static bool BuildCollisionChunks()
     return s_pCollide != NULL || s_chunkCollides.Count() > 0;
 }
 
+static bool TraceSpatialChunksOnly(const Ray_t& ray, const Vector& start, const Vector& end,
+    const Vector& mins, const Vector& maxs, trace_t& result,
+    bool* encounteredStartSolid = NULL, trace_t* firstStartSolidTrace = NULL)
+{
+    result = trace_t();
+    result.fraction = 1.0f;
+    result.startpos = start;
+    result.endpos = end;
+    bool traced = false;
+    bool hadStartSolid = false;
+    trace_t startSolidResult;
+
+    if (s_chunkGridWidth <= 0 || s_chunkGridHeight <= 0)
+        return false;
+
+    const float qMinX = MIN(start.x + mins.x, end.x + mins.x);
+    const float qMaxX = MAX(start.x + maxs.x, end.x + maxs.x);
+    const float qMinY = MIN(start.y + mins.y, end.y + mins.y);
+    const float qMaxY = MAX(start.y + maxs.y, end.y + maxs.y);
+    const int x0 = MAX(0, (int)floor((qMinX - s_chunkGridOriginX) / kCollisionChunkSize));
+    const int x1 = MIN(s_chunkGridWidth - 1, (int)floor((qMaxX - s_chunkGridOriginX) / kCollisionChunkSize));
+    const int y0 = MAX(0, (int)floor((qMinY - s_chunkGridOriginY) / kCollisionChunkSize));
+    const int y1 = MIN(s_chunkGridHeight - 1, (int)floor((qMaxY - s_chunkGridOriginY) / kCollisionChunkSize));
+    if (x0 > x1 || y0 > y1)
+        return false;
+
+    for (int y = y0; y <= y1; ++y)
+    {
+        for (int x = x0; x <= x1; ++x)
+        {
+            const int chunkIndex = s_chunkGrid[y * s_chunkGridWidth + x];
+            if (chunkIndex < 0 || !s_chunkCollides[chunkIndex])
+                continue;
+            trace_t tr;
+            physcollision->TraceBox(ray, s_chunkCollides[chunkIndex], vec3_origin, vec3_angle, &tr);
+            traced = true;
+            if (tr.startsolid || tr.allsolid)
+            {
+                if (!hadStartSolid)
+                    startSolidResult = tr;
+                hadStartSolid = true;
+                continue;
+            }
+            if (tr.fraction < result.fraction)
+                result = tr;
+        }
+    }
+    if (result.fraction >= 1.0f && hadStartSolid)
+        result = startSolidResult;
+    if (encounteredStartSolid)
+        *encounteredStartSolid = hadStartSolid;
+    if (firstStartSolidTrace && hadStartSolid)
+        *firstStartSolidTrace = startSolidResult;
+    return traced;
+}
+
 static bool TraceCollisionChunks(const Vector& start, const Vector& end, const Vector& mins,
     const Vector& maxs, trace_t& result, bool* encounteredStartSolid = NULL,
     trace_t* firstStartSolidTrace = NULL)
@@ -628,24 +684,10 @@ void BFBBColl_MergeHullTrace(const Vector& start, const Vector& end, const Vecto
     // Diagnostic isolation mode: use the original monolithic JSP collision for
     // movement traces. This bypasses independently cooked spatial chunks while
     // preserving the zero-length start-solid behavior needed by CanUnduck().
-    bool traced = false;
-    if (s_pCollide)
-    {
-        Ray_t wholeRay;
-        wholeRay.Init(start, end, mins, maxs);
-        memset(&tr, 0, sizeof(tr));
-        tr.fraction = 1.0f;
-        physcollision->TraceBox(wholeRay, s_pCollide, vec3_origin, vec3_angle, &tr);
-        encounteredStartSolid = tr.startsolid || tr.allsolid;
-        if (encounteredStartSolid)
-            startSolidTrace = tr;
-        traced = true;
-    }
-    else
-    {
-        traced = TraceCollisionChunks(start, end, mins, maxs, tr, &encounteredStartSolid,
-            &startSolidTrace);
-    }
+    Ray_t spatialRay;
+    spatialRay.Init(start, end, mins, maxs);
+    const bool traced = TraceSpatialChunksOnly(spatialRay, start, end, mins, maxs, tr,
+        &encounteredStartSolid, &startSolidTrace);
 
     // Whole-mesh-only isolation mode intentionally skips chunk-hit verification.
 
