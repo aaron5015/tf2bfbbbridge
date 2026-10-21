@@ -660,11 +660,11 @@ static void PrintPlayerHullProbe(const Vector& pos, const Vector& mins, const Ve
             // magenta = disagreement between the live chunk path and whole-mesh reference.
             NDebugOverlay::Line(pos, end, 0, 200, 255, true, 12.0f);
             if (sweep.startsolid || sweep.allsolid || sweep.fraction < 1.0f) {
-                NDebugOverlay::Cross(chunkHit, 5.0f, 255, 40, 40, true, 12.0f);
+                NDebugOverlay::Cross3D(chunkHit, 5.0f, 255, 40, 40, true, 12.0f);
                 NDebugOverlay::Line(chunkHit, chunkHit + sweep.plane.normal * 24.0f, 255, 40, 40, true, 12.0f);
             }
             if (wholeSweep.startsolid || wholeSweep.allsolid || wholeSweep.fraction < 1.0f) {
-                NDebugOverlay::Cross(wholeHit, 5.0f, 40, 255, 40, true, 12.0f);
+                NDebugOverlay::Cross3D(wholeHit, 5.0f, 40, 255, 40, true, 12.0f);
                 NDebugOverlay::Line(wholeHit, wholeHit + wholeSweep.plane.normal * 24.0f, 40, 255, 40, true, 12.0f);
             }
             if ((sweep.fraction < 1.0f) != (wholeSweep.fraction < 1.0f) ||
